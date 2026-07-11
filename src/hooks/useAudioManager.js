@@ -225,6 +225,50 @@ export default function useAudioManager() {
   const playTypingTick = useCallback(() => playSynthClick('tick'), [playSynthClick]);
   const playTerminalBoot = useCallback(() => playSynthClick('boot'), [playSynthClick]);
 
+  // Synthesized distant thunder — no audio asset, same philosophy as the
+  // typing clicks above. Brown-ish noise (integrated white noise, so the
+  // energy sits low) through a lowpass that closes from 220Hz to 60Hz as the
+  // rumble dies, with a slow swell instead of a crack: this is thunder from
+  // MILES away behind the rain, not a strike overhead. Peak gain is kept
+  // under the narration bed and the filter ceiling (220Hz) leaves the whole
+  // voice band untouched, so a rumble landing mid-narration can't mask it.
+  const playThunder = useCallback(() => {
+    const ctx = ctxRef.current;
+    const master = masterGainRef.current;
+    if (!ctx || !master) return;
+
+    const duration = 3.5;
+    const bufferSize = Math.ceil(ctx.sampleRate * duration);
+    const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+    const data = buffer.getChannelData(0);
+    let last = 0;
+    for (let i = 0; i < bufferSize; i += 1) {
+      const white = Math.random() * 2 - 1;
+      last = (last + 0.02 * white) / 1.02;
+      data[i] = last * 3.5;
+    }
+
+    const source = ctx.createBufferSource();
+    source.buffer = buffer;
+
+    const filter = ctx.createBiquadFilter();
+    filter.type = 'lowpass';
+    const now = ctx.currentTime;
+    filter.frequency.setValueAtTime(220, now);
+    filter.frequency.exponentialRampToValueAtTime(60, now + duration);
+
+    const gain = ctx.createGain();
+    gain.gain.setValueAtTime(0.0001, now);
+    gain.gain.exponentialRampToValueAtTime(0.35, now + 0.3);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + duration);
+
+    source.connect(filter);
+    filter.connect(gain);
+    gain.connect(master);
+    source.start(now);
+    source.stop(now + duration);
+  }, []);
+
   // Narration is replayable — SPEC: every section's narrator must speak
   // again on re-entry, regardless of scroll direction, not just once ever.
   // Stopping whatever's currently mid-playback (rather than a permanent
@@ -319,6 +363,7 @@ export default function useAudioManager() {
     hasNarrationCompleted,
     playTypingTick,
     playTerminalBoot,
+    playThunder,
     setScrollIntensity,
     setHubActive,
     toggleMute,

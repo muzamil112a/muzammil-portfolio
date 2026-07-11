@@ -593,7 +593,13 @@ const Experience = forwardRef(function Experience({ audio, onActiveSectionChange
           className="absolute inset-0 h-full w-full"
           style={{ opacity: 1, willChange: 'opacity' }}
         >
-          <Hero videoRef={videoRef} />
+          {/* isHeroActive reads the ref (not state) so LightningFlash can
+              gate strikes on the live section without re-rendering. */}
+          <Hero
+            videoRef={videoRef}
+            audio={audio}
+            isHeroActive={() => activeSectionIndexRef.current === 0}
+          />
         </div>
         <div
           ref={aboutLayerRef}

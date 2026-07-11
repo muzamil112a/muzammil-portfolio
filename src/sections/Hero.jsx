@@ -1,14 +1,16 @@
 import { useEffect, useRef } from 'react';
 import gsap from 'gsap';
 import SectionNumeral from '../components/SectionNumeral.jsx';
+import LightningFlash from '../components/LightningFlash.jsx';
 
-// Presentational hero layer: the scroll-scrubbed video + name/title overlay.
-// All scroll-driven behavior (this layer's own fade in/out, the video's
+// Presentational hero layer: the scroll-scrubbed video + name/title overlay,
+// plus the occasional distant-lightning strobe (LightningFlash). All
+// scroll-driven behavior (this layer's own fade in/out, the video's
 // currentTime scrub) is orchestrated centrally by Experience.jsx, which owns
 // the single master ScrollTrigger for the whole journey. `videoRef` is
 // wired up there. This component only keeps its own small entrance fade for
 // the overlay text on mount (standing in for the Phase 4 gate-open cue).
-export default function Hero({ videoRef }) {
+export default function Hero({ videoRef, audio, isHeroActive }) {
   const overlayRef = useRef(null);
 
   useEffect(() => {
@@ -46,6 +48,10 @@ export default function Hero({ videoRef }) {
         preload="auto"
         src="/assets/video/hero-walk.mp4"
       />
+
+      {/* z-[5]: above the video, below the z-10 name overlay — the flash
+          brightens the scene, never the text. */}
+      <LightningFlash audio={audio} isHeroActive={isHeroActive} />
 
       <div
         ref={overlayRef}
