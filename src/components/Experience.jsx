@@ -192,21 +192,6 @@ const Experience = forwardRef(function Experience({ audio, onActiveSectionChange
     },
   ] = useState(computeVhLayout);
 
-  // Mobile fallback strategy (< 768px, matching every other `max-width: 768px`
-  // gate already used across this codebase — Fireflies/FogParticles/Hub's
-  // embers, etc.): rather than squeezing the desktop pinned-canvas/crossfade/
-  // scroll-scrub architecture down into a small screen, mobile renders Hero/
-  // About/Projects/Hub as ordinary, independently-scrollable full-viewport
-  // sections below — no ScrollTrigger scrub, no video-frame scrubbing, no Ken
-  // Burns/parallax, no cinematic auto-scroll. Computed once at mount (same
-  // one-time-matchMedia pattern as everywhere else in this file), not
-  // resize-reactive — a mid-visit device rotation revisiting this is a rare
-  // enough edge case that the established codebase convention already
-  // accepts it elsewhere (see computeVhLayout above).
-  const [isMobile] = useState(
-    () => typeof window !== 'undefined' && window.matchMedia('(max-width: 768px)').matches
-  );
-
   const wrapperRef = useRef(null);
   const canvasRef = useRef(null);
   const fogRef = useRef(null);
@@ -252,9 +237,6 @@ const Experience = forwardRef(function Experience({ audio, onActiveSectionChange
   }
 
   useEffect(() => {
-    // Mobile's Hero renders a static poster image, not a <video> — none of
-    // this scroll-scrub/ScrollTrigger machinery has anything to drive there.
-    if (isMobile) return undefined;
     const video = videoRef.current;
     // Hero.jsx deliberately has no `src` attribute — assigning one here from
     // preloadAssets' already-downloaded bytes (videoCache.js) means the
@@ -462,38 +444,6 @@ const Experience = forwardRef(function Experience({ audio, onActiveSectionChange
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Mobile's replacement for the desktop ScrollTrigger onUpdate above: Hero/
-  // About/Projects/Hub are real, independently-scrollable sections now (see
-  // the render tree below), so "which one is the visitor currently in" and
-  // "trigger that section's narration" can both come from one plain
-  // IntersectionObserver instead of scroll-progress fraction math. Mirrors
-  // the desktop behavior it replaces — narration replays on every (re-)entry
-  // in either scroll direction, guarded by the same activeSectionIndexRef so
-  // it can't double-fire — just driven by intersection instead of a
-  // continuously-scrubbed progress value.
-  useEffect(() => {
-    if (!isMobile) return undefined;
-    const ids = ['hero', 'about', 'projects', 'hub'];
-    const els = ids.map((id) => document.getElementById(id)).filter(Boolean);
-    if (!els.length) return undefined;
-    const observer = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((entry) => {
-          if (!entry.isIntersecting || entry.intersectionRatio < 0.55) return;
-          const index = ids.indexOf(entry.target.id);
-          if (index === -1 || index === activeSectionIndexRef.current) return;
-          activeSectionIndexRef.current = index;
-          onActiveSectionChange?.(index);
-          scheduleNarration(index + 1);
-        });
-      },
-      { threshold: [0.55] }
-    );
-    els.forEach((el) => observer.observe(el));
-    return () => observer.disconnect();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isMobile]);
-
   // Every scroll-to action anywhere in the app (the cinematic intro
   // auto-scroll, RomanNav clicks, Hub tablet clicks, Terminal/Contact jumps)
   // is funneled through this one helper so there is only ever one scroll-
@@ -543,17 +493,7 @@ const Experience = forwardRef(function Experience({ audio, onActiveSectionChange
   useEffect(() => {
     function handleGateOpened() {
       if (heroAutoScrollDoneRef.current) return;
-      // Mobile has no pinned canvas/ScrollTrigger for this to hop through at
-      // all — sections are ordinary document-flow content there (see the
-      // render tree below), so this whole cinematic belongs to the desktop
-      // path only. Treated exactly like the existing reduced-motion bail:
-      // no ref-setting, no early no-scroll removal (that removal exists
-      // specifically because the walk tween below starts scrolling
-      // immediately and needs the lock lifted before Loading's own ~2s-later
-      // cleanup would otherwise get to it) — Loading.jsx's own stage='done'
-      // effect removes 'no-scroll' shortly after regardless, same fallback
-      // reduced-motion visitors already rely on.
-      if (isMobile || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+      if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
       const trigger = scrollTriggerRef.current;
       if (!trigger) return;
       heroAutoScrollDoneRef.current = true;
@@ -687,31 +627,16 @@ const Experience = forwardRef(function Experience({ audio, onActiveSectionChange
   }
 
   function handleTabletClick(id) {
-    if (id === 'skills') {
-      setSkillsOpen(true);
-      return;
-    }
-    // Terminal/Contact are real document-flow sections regardless of which
-    // path rendered Hero/About/Projects/Hub, so this branch is shared.
-    if (id === 'terminal' || id === 'contact') {
-      const el = document.getElementById(id);
-      if (!el) return;
-      scrollWindowTo(el.getBoundingClientRect().top + window.scrollY);
-      return;
-    }
-    // Mobile's Hero/About/Projects/Hub are also real document-flow sections
-    // (ids match 1:1 — see the render tree below), not fractional positions
-    // inside a pinned canvas, so this is the same lookup as terminal/contact
-    // above rather than scrollToFraction's trigger-relative math.
-    if (isMobile) {
-      const el = document.getElementById(id);
-      if (el) scrollWindowTo(el.getBoundingClientRect().top + window.scrollY);
-      return;
-    }
     if (id === 'hero') scrollToFraction(0);
     else if (id === 'about') scrollToFraction(ABOUT_MID);
     else if (id === 'projects') scrollToFraction(PROJECTS_MID);
     else if (id === 'hub') scrollToFraction(HUB_MID);
+    else if (id === 'skills') setSkillsOpen(true);
+    else if (id === 'terminal' || id === 'contact') {
+      const el = document.getElementById(id);
+      if (!el) return;
+      scrollWindowTo(el.getBoundingClientRect().top + window.scrollY);
+    }
   }
 
   // Exposes handleTabletClick to RomanNav.jsx, a sibling under App.jsx (not
@@ -719,62 +644,6 @@ const Experience = forwardRef(function Experience({ audio, onActiveSectionChange
   // actions but can't call a plain prop function across siblings — an
   // imperative ref via the common parent is the standard way to bridge that.
   useImperativeHandle(ref, () => ({ scrollToSection: handleTabletClick }));
-
-  const skillsModal = skillsOpen && (
-    <OverlayModal title="SKILLS" onClose={() => setSkillsOpen(false)}>
-      <div className="grid gap-4 sm:grid-cols-2">
-        {SKILL_GROUPS.map((group) => (
-          <div key={group.title} className="skill-card">
-            <h4 className="font-serif text-xs uppercase tracking-[0.25em] text-gold-dim">{group.title}</h4>
-            <div className="mt-3 flex flex-wrap gap-2">
-              {group.items.map((item) => (
-                <span key={item} className="skill-chip">
-                  {item}
-                </span>
-              ))}
-            </div>
-          </div>
-        ))}
-      </div>
-    </OverlayModal>
-  );
-
-  // Mobile fallback: Hero/About/Projects/Hub as ordinary stacked sections in
-  // normal document flow — no pinned canvas, no crossfade, no FogParticles
-  // (skipped entirely rather than just reduced; it's never even imported/
-  // fetched here since FogParticles is lazy — see the top of this file).
-  // `.viewport-full-min` (not the exact-height `.viewport-full` the desktop
-  // canvas uses) so a section can grow taller than one screen if its content
-  // needs the room, rather than clipping — see About/Projects' own `mobile`
-  // branches for what that content looks like.
-  if (isMobile) {
-    return (
-      <>
-        <section id="hero" className="viewport-full-min relative w-full overflow-hidden bg-black">
-          <Hero
-            videoRef={videoRef}
-            audio={audio}
-            isHeroActive={() => activeSectionIndexRef.current === 0}
-            mobile
-          />
-        </section>
-        <section id="about" className="viewport-full-min relative w-full overflow-hidden bg-black">
-          <About imgRef={scene2Ref} panelRef={aboutPanelRef} mobile />
-        </section>
-        <section id="projects" className="viewport-full-min relative w-full overflow-hidden bg-black">
-          <Projects imgRef={scene3Ref} mobile />
-        </section>
-        <section id="hub" className="viewport-full-min relative w-full overflow-hidden bg-black">
-          <Hub imgRef={scene4Ref} onTabletClick={handleTabletClick} mobile />
-        </section>
-
-        <FilmGrain />
-        <Vignette />
-
-        {skillsModal}
-      </>
-    );
-  }
 
   return (
     <>
@@ -841,7 +710,24 @@ const Experience = forwardRef(function Experience({ audio, onActiveSectionChange
         <FilmGrain />
         <Vignette />
 
-        {skillsModal}
+        {skillsOpen && (
+          <OverlayModal title="SKILLS" onClose={() => setSkillsOpen(false)}>
+            <div className="grid gap-4 sm:grid-cols-2">
+              {SKILL_GROUPS.map((group) => (
+                <div key={group.title} className="skill-card">
+                  <h4 className="font-serif text-xs uppercase tracking-[0.25em] text-gold-dim">{group.title}</h4>
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    {group.items.map((item) => (
+                      <span key={item} className="skill-chip">
+                        {item}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </OverlayModal>
+        )}
         </div>
 
         <div className="pointer-events-none" aria-hidden="true" style={{ height: `${HERO_VH}vh` }} />

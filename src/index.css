@@ -1108,57 +1108,6 @@ body.custom-cursor * {
   }
 }
 
-/* Mobile hamburger + dropdown menu (Navbar.jsx) — the link row it replaces
-   below `md:` is a plain three-bar icon that morphs into an X when open,
-   same weight/color language as the rest of the top bar's text (gold, thin
-   strokes) rather than a generic UI-kit icon. */
-.hamburger-line {
-  display: block;
-  width: 22px;
-  height: 2px;
-  background: #c9a227;
-  border-radius: 1px;
-  transition: transform 0.3s ease, opacity 0.3s ease;
-}
-
-.hamburger-line-top-open {
-  transform: translateY(7px) rotate(45deg);
-}
-
-.hamburger-line-mid-open {
-  opacity: 0;
-}
-
-.hamburger-line-bottom-open {
-  transform: translateY(-7px) rotate(-45deg);
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .hamburger-line {
-    transition: none;
-  }
-}
-
-/* Dropdown panel: same dark-glass/gold-hairline material as
-   .navbar-glass/OverlayModal rather than a plain solid block, so it reads
-   as part of the same UI family instead of a bolted-on mobile-only widget. */
-.navbar-mobile-menu {
-  background: linear-gradient(180deg, rgba(10, 9, 6, 0.97) 0%, rgba(5, 4, 3, 0.98) 100%);
-  border-bottom: 1px solid rgba(201, 162, 39, 0.25);
-  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.6);
-  padding: 0.5rem 0 1rem;
-}
-
-.navbar-mobile-link {
-  padding: 0.9rem 1.5rem;
-  text-align: left;
-  border-top: 1px solid rgba(201, 162, 39, 0.08);
-}
-
-.navbar-mobile-link:first-child {
-  border-top: none;
-}
-
 /* Specular highlight — a soft warm glow that follows the cursor across the
    glass (--mx/--my set by Navbar.jsx's tilt handler), reading as light
    sliding across the pane's surface as it tilts. Lives inside

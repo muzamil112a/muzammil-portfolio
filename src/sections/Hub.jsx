@@ -58,16 +58,7 @@ const EMBERS = makeEmbers(EMBER_COUNT);
 // state lives in Experience.jsx since modals must stay interactive
 // regardless of this layer's scroll-driven opacity; `onTabletClick` reports
 // which tablet was pressed.
-//
-// The mobile 2x2 stone-button grid below (`md:hidden`) already covers item 3
-// of the mobile-fallback spec (same engraved-gold text as the desktop
-// tablets, backed by its own carved-stone panel — see .hub-stone-button in
-// index.css) regardless of which Experience.jsx path renders this component.
-// `mobile` only controls SectionNumeral's reveal method: mobile renders this
-// as a real, independently-scrolled-into document-flow section, so it needs
-// SectionNumeral's IntersectionObserver-driven fade-in rather than assuming
-// an ancestor's crossfade opacity.
-export default function Hub({ imgRef, onTabletClick, mobile = false }) {
+export default function Hub({ imgRef, onTabletClick }) {
   const nameRef = useRef(null);
   const subtitleRef = useRef(null);
   const quoteRef = useRef(null);
@@ -123,7 +114,7 @@ export default function Hub({ imgRef, onTabletClick, mobile = false }) {
 
   return (
     <>
-      <SectionNumeral numeral="IV" side="right" observe={mobile} />
+      <SectionNumeral numeral="IV" side="right" />
 
       {/* scene-4-hub.webp is the single largest image asset (2560px-wide
           source, ~400KB) — scene-4-hub-mobile.webp is a pre-shrunk 1200px

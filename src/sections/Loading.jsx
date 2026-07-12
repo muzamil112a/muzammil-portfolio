@@ -395,15 +395,10 @@ export default function Loading({ audio }) {
                 <span className="h-px w-8 bg-current" />
               </div>
 
-              {/* py-3 (rather than sizing the text itself up) gives this a
-                  real >=44px tap target without changing how the link reads
-                  visually — "ENTER THE FOG" above already has plenty of
-                  padding from its own px-12 py-4, this was the one
-                  small-text-only tap target on this screen. */}
               <button
                 type="button"
                 onClick={() => handleChoice(true)}
-                className="py-3 font-serif text-xs tracking-[0.2em] text-gold-dim underline-offset-4 transition hover:text-gold hover:underline"
+                className="font-serif text-xs tracking-[0.2em] text-gold-dim underline-offset-4 transition hover:text-gold hover:underline"
               >
                 enter silently
               </button>

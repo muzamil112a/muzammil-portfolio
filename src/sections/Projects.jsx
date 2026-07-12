@@ -90,76 +90,7 @@ function handleCardPointerLeave(e) {
 // label parallax) — their opacity/transform are also written by Experience's
 // onUpdate, from the same `projectsLocal` value that already drives Ken
 // Burns here, so none of it touches the section's crossfade/opacity math.
-//
-// `mobile`: the desktop 2-column layout with descriptions hidden below `sm:`
-// existed only because both cards had to fit inside a capped 100vh pinned
-// canvas — on mobile there's no such cap (.viewport-full-min can grow), so
-// this renders a single full-width column with every description visible
-// and larger text instead of squeezing the desktop layout down. `cardsRef`/
-// `lineRef`/`labelsRef` are the desktop entrance-stagger wiring (opacity
-// starts at 0, waiting for Experience's scroll onUpdate to animate it in) —
-// that onUpdate never runs on mobile, so this path skips those refs
-// entirely and renders cards directly visible rather than stuck invisible.
-export default function Projects({ imgRef, cardsRef, lineRef, labelsRef, mobile = false }) {
-  if (mobile) {
-    return (
-      <>
-        <SectionNumeral numeral="III" side="left" observe />
-
-        <picture>
-          <source media="(max-width: 768px)" srcSet="/assets/images/scene-3-mobile.webp" />
-          <img
-            src="/assets/images/scene-3.webp"
-            alt=""
-            aria-hidden="true"
-            loading="eager"
-            decoding="async"
-            className="pointer-events-none absolute inset-0 h-full w-full object-cover object-center"
-          />
-        </picture>
-        <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-black/65 via-black/20 to-black/70" />
-
-        <div className="relative z-10 flex w-full flex-col items-center px-5 py-16">
-          <p className="mb-3 font-serif text-xs uppercase tracking-[0.5em] text-gold-dim/80">Where I Work</p>
-          <div
-            aria-hidden="true"
-            className="mb-8 h-px w-full max-w-sm bg-gradient-to-r from-gold-dim via-gold-faint to-transparent"
-          />
-
-          <div className="flex w-full max-w-sm flex-col gap-6">
-            {PROJECTS.map((project) => (
-              <CardShell
-                key={project.title}
-                link={project.link}
-                className="relative block overflow-hidden rounded-sm border border-gold-faint bg-black/50 p-5 backdrop-blur-md"
-              >
-                <div
-                  aria-hidden="true"
-                  className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-gold-dim to-transparent opacity-70"
-                />
-                <span className="font-serif text-3xl text-gold-faint">{project.index}</span>
-                <h3 className="mt-1 font-display text-lg tracking-[0.08em] text-gold">{project.title}</h3>
-                <p className="relative mt-3 font-serif text-base leading-relaxed text-white/80">
-                  {project.description}
-                </p>
-                <div className="relative mt-4 flex flex-wrap gap-2">
-                  {project.tags.map((tag) => (
-                    <span
-                      key={tag}
-                      className="rounded-full border border-gold-faint bg-[rgba(201,162,39,0.06)] px-2.5 py-1 text-[11px] uppercase tracking-widest text-gold-dim"
-                    >
-                      {tag}
-                    </span>
-                  ))}
-                </div>
-              </CardShell>
-            ))}
-          </div>
-        </div>
-      </>
-    );
-  }
-
+export default function Projects({ imgRef, cardsRef, lineRef, labelsRef }) {
   return (
     <>
       <SectionNumeral numeral="III" side="left" />

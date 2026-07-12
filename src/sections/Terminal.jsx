@@ -182,20 +182,12 @@ export default function Terminal({ audio }) {
   // the box would stay fixed-size while the photo (and the screen glass on
   // it) grows underneath it, making the box look progressively too small
   // for the glass the further the visitor scrolls in.
-  //
-  // Desktop-only: below `md:` .terminal-mount is already a flat, centered,
-  // normal-flow panel (not mapped onto the photo's screen glass at all — see
-  // its own `md:` breakpoint in index.css), so there's no "screen" for this
-  // to lean into and nothing for the two transforms to stay in lockstep
-  // with. Per the mobile-fallback spec, that flat panel mode should have no
-  // 3D transform of its own.
   useEffect(() => {
     const img = bgImgRef.current;
     const mount = mountRef.current;
     const section = sectionRef.current;
     if (!img || !mount || !section) return undefined;
     if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return undefined;
-    if (window.matchMedia('(max-width: 768px)').matches) return undefined;
 
     const trigger = ScrollTrigger.create({
       trigger: section,
