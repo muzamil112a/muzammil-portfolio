@@ -100,7 +100,7 @@ export default function Navbar({ onNavClick }) {
   return (
     <div
       ref={containerRef}
-      className="navbar-3d pointer-events-none fixed inset-x-0 top-0 z-40 flex items-center justify-between px-4 py-4 sm:px-6 sm:py-6 lg:px-12"
+      className="navbar-3d pointer-events-none fixed inset-x-0 top-0 z-40 flex items-center justify-between"
     >
       <div aria-hidden="true" className="navbar-glass">
         <div aria-hidden="true" className="navbar-shine" />

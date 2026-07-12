@@ -11,19 +11,26 @@ export default function About({ imgRef, panelRef }) {
     <>
       <SectionNumeral numeral="II" side="right" />
 
-      <img
-        ref={imgRef}
-        src="/assets/images/scene-2.webp"
-        alt=""
-        aria-hidden="true"
-        loading="eager"
-        decoding="async"
-        className="pointer-events-none absolute inset-0 h-full w-full object-cover object-center"
-        style={{
-          transform: 'translate(var(--px-x, 0px), var(--px-y, 0px)) scale(var(--kb-scale, 1))',
-          willChange: 'transform',
-        }}
-      />
+      {/* scene-2-mobile.webp is a pre-shrunk (1200px-wide) variant of the
+          same crop — phones don't need the full desktop resolution for a
+          background that's cropped down to a narrow portrait slice anyway,
+          and it cuts this image's payload by roughly half. */}
+      <picture>
+        <source media="(max-width: 768px)" srcSet="/assets/images/scene-2-mobile.webp" />
+        <img
+          ref={imgRef}
+          src="/assets/images/scene-2.webp"
+          alt=""
+          aria-hidden="true"
+          loading="eager"
+          decoding="async"
+          className="pointer-events-none absolute inset-0 h-full w-full object-cover object-center"
+          style={{
+            transform: 'translate(var(--px-x, 0px), var(--px-y, 0px)) scale(var(--kb-scale, 1))',
+            willChange: 'transform',
+          }}
+        />
+      </picture>
       <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/75 via-black/25 to-black/40" />
       <div
         aria-hidden="true"

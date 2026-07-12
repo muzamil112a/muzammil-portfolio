@@ -95,19 +95,24 @@ export default function Projects({ imgRef, cardsRef, lineRef, labelsRef }) {
     <>
       <SectionNumeral numeral="III" side="left" />
 
-      <img
-        ref={imgRef}
-        src="/assets/images/scene-3.webp"
-        alt=""
-        aria-hidden="true"
-        loading="eager"
-        decoding="async"
-        className="pointer-events-none absolute inset-0 h-full w-full object-cover object-center"
-        style={{
-          transform: 'translate(var(--px-x, 0px), var(--px-y, 0px)) scale(var(--kb-scale, 1))',
-          willChange: 'transform',
-        }}
-      />
+      {/* scene-3-mobile.webp is a pre-shrunk (1200px-wide) variant of the
+          same crop for phones — see About.jsx's identical treatment. */}
+      <picture>
+        <source media="(max-width: 768px)" srcSet="/assets/images/scene-3-mobile.webp" />
+        <img
+          ref={imgRef}
+          src="/assets/images/scene-3.webp"
+          alt=""
+          aria-hidden="true"
+          loading="eager"
+          decoding="async"
+          className="pointer-events-none absolute inset-0 h-full w-full object-cover object-center"
+          style={{
+            transform: 'translate(var(--px-x, 0px), var(--px-y, 0px)) scale(var(--kb-scale, 1))',
+            willChange: 'transform',
+          }}
+        />
+      </picture>
       <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-black/65 via-black/20 to-black/70" />
       <div
         aria-hidden="true"

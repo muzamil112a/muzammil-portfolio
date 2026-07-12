@@ -39,8 +39,13 @@ export default function ScrollToTopButton() {
       aria-label="Back to top"
       aria-hidden={!visible}
       tabIndex={visible ? 0 : -1}
-      className="fixed bottom-20 right-6 z-40 flex h-10 w-10 items-center justify-center rounded-full border border-gold-dim text-gold transition-all duration-500 ease-out hover:border-gold hover:text-gold"
+      // `after:` hit-slop + safe-area offsets: same reasoning as
+      // MuteToggle.jsx's identical treatment, just stacked one button
+      // higher (5rem instead of 1.5rem) so the two never overlap.
+      className="fixed z-40 flex h-10 w-10 items-center justify-center rounded-full border border-gold-dim text-gold transition-all duration-500 ease-out after:absolute after:-inset-0.5 after:content-[''] hover:border-gold hover:text-gold"
       style={{
+        bottom: 'calc(5rem + env(safe-area-inset-bottom))',
+        right: 'calc(1.5rem + env(safe-area-inset-right))',
         opacity: visible ? 1 : 0,
         transform: visible ? 'translateY(0) scale(1)' : 'translateY(14px) scale(0.8)',
         pointerEvents: visible ? 'auto' : 'none',

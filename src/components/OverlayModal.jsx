@@ -26,7 +26,11 @@ export default function OverlayModal({ title, onClose, children }) {
           type="button"
           onClick={onClose}
           aria-label="Close"
-          className="absolute right-4 top-4 flex h-8 w-8 items-center justify-center rounded-full border border-gold-faint text-gold-dim transition hover:border-gold hover:text-gold hover:shadow-[0_0_12px_rgba(201,162,39,0.4)]"
+          // `after:` hit-slop: 32px visible circle -> 44px actual tap
+          // target (Apple/Google's usual minimum), without inflating the
+          // circle itself past what the modal's compact header comfortably
+          // fits — same technique as MuteToggle.jsx/ScrollToTopButton.jsx.
+          className="absolute right-4 top-4 flex h-8 w-8 items-center justify-center rounded-full border border-gold-faint text-gold-dim transition after:absolute after:-inset-2 after:content-[''] hover:border-gold hover:text-gold hover:shadow-[0_0_12px_rgba(201,162,39,0.4)]"
         >
           ✕
         </button>

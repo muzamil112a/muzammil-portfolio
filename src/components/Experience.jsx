@@ -1,4 +1,4 @@
-import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from 'react';
+import { forwardRef, lazy, Suspense, useEffect, useImperativeHandle, useRef, useState } from 'react';
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { ScrollToPlugin } from 'gsap/ScrollToPlugin';
@@ -8,9 +8,17 @@ import Projects from '../sections/Projects.jsx';
 import Hub from '../sections/Hub.jsx';
 import FilmGrain from './FilmGrain.jsx';
 import FogOverlay from './FogOverlay.jsx';
-import FogParticles from './FogParticles.jsx';
 import OverlayModal from './OverlayModal.jsx';
 import Vignette from './Vignette.jsx';
+import { getVideoBlobUrl } from '../utils/videoCache.js';
+
+// Three.js (imported by FogParticles) is the single heaviest dependency in
+// the bundle — lazy-loading it means it's fetched/parsed after first paint
+// instead of blocking it for every visitor, phones included. No Suspense
+// fallback needed: FogParticles renders nothing visible until intensity is
+// pushed above 0 by scroll (see setIntensity below), so a brief gap before
+// it mounts is imperceptible.
+const FogParticles = lazy(() => import('./FogParticles.jsx'));
 
 gsap.registerPlugin(ScrollTrigger, ScrollToPlugin);
 
@@ -64,6 +72,9 @@ const KEN_BURNS_MAX_SCALE = 1.06;
 const PARALLAX_MAX_PX = 8;
 const LERP_FACTOR = 0.2;
 const EPSILON = 0.0005;
+// ~1 frame at a conservative 30fps — see applyVideoFrame's video.currentTime
+// write below for why sub-frame seeks are skipped rather than applied.
+const MIN_VIDEO_SEEK_DELTA = 1 / 30;
 
 // Per-narration voice timing: how long (ms) after first scrolling into a
 // section the voice waits before it starts, keyed by narration index. The
@@ -227,16 +238,42 @@ const Experience = forwardRef(function Experience({ audio, onActiveSectionChange
 
   useEffect(() => {
     const video = videoRef.current;
-    // `preload="auto"` on the <video> tag (Hero.jsx) is only a hint — Chrome's
-    // own heuristics can leave a never-played video sitting at readyState 0
-    // indefinitely (reproduced: stuck at HAVE_NOTHING 14s+ on a fresh tab,
-    // even though preloadAssets already downloaded the same file). An
-    // explicit `load()` forces the browser to actually start fetching
-    // instead of gambling on that heuristic.
-    video.load();
+    // Hero.jsx deliberately has no `src` attribute — assigning one here from
+    // preloadAssets' already-downloaded bytes (videoCache.js) means the
+    // browser plays the file straight from memory instead of fetching the
+    // same 5MB video a second time over the network. Experience mounts
+    // immediately (it's not gated behind Loading's overlay), so this effect
+    // usually runs before preloadAssets has resolved — 'video-blob-ready'
+    // catches the blob arriving shortly after. If it never arrives (that
+    // asset's XHR erroring out, or an unexpectedly slow connection),
+    // FALLBACK_MS falls back to fetching the real URL directly so the video
+    // isn't permanently blank rather than optimizing correctness away.
+    const FALLBACK_MS = 8000;
+    let settled = false;
+    function applyVideoSrc(url) {
+      if (settled || video.src === url) return;
+      settled = true;
+      video.src = url;
+      // `preload="auto"` alone is only a hint — Chrome's own heuristics can
+      // leave a never-played video sitting at readyState 0 indefinitely
+      // (reproduced: stuck at HAVE_NOTHING 14s+ on a fresh tab). An explicit
+      // `load()` forces the browser to actually start fetching/reading
+      // instead of gambling on that heuristic.
+      video.load();
+    }
+    const existingBlobUrl = getVideoBlobUrl('hero-walk');
+    if (existingBlobUrl) applyVideoSrc(existingBlobUrl);
+    function onBlobReady(e) {
+      if (e.detail?.key === 'hero-walk') applyVideoSrc(getVideoBlobUrl('hero-walk'));
+    }
+    window.addEventListener('video-blob-ready', onBlobReady);
+    const fallbackId = existingBlobUrl
+      ? null
+      : setTimeout(() => applyVideoSrc('/assets/video/hero-walk.mp4'), FALLBACK_MS);
 
     let targetHeroLocal = 0;
     let currentHeroLocal = 0;
+    let lastSetVideoTime = -1;
     let rafId = null;
     const applyVideoFrame = () => {
       const diff = targetHeroLocal - currentHeroLocal;
@@ -245,9 +282,25 @@ const Experience = forwardRef(function Experience({ audio, onActiveSectionChange
       // one-shot 'loadedmetadata' listener — if that event is ever missed or
       // significantly delayed (the same readyState-stall above), a cached
       // duration of 0 would silently freeze the scrub forever with no retry.
-      if (video.duration > 0) video.currentTime = currentHeroLocal * video.duration;
+      // Setting `currentTime` triggers a real decode/seek internally on many
+      // (especially mobile) browsers, so this only actually writes it when
+      // the target has moved by at least roughly one video frame's worth of
+      // time — smaller deltas would decode to a visually identical frame
+      // anyway, so skipping them cuts a meaningful share of redundant seeks
+      // during a slow scroll without any visible quality loss. The settled
+      // (converged) frame is always written exactly regardless of that
+      // threshold, so the loop never stops one skipped write short of the
+      // actual scroll-target frame.
+      const converged = Math.abs(targetHeroLocal - currentHeroLocal) < EPSILON;
+      if (video.duration > 0) {
+        const nextTime = currentHeroLocal * video.duration;
+        if (converged || Math.abs(nextTime - lastSetVideoTime) >= MIN_VIDEO_SEEK_DELTA) {
+          video.currentTime = nextTime;
+          lastSetVideoTime = nextTime;
+        }
+      }
 
-      if (Math.abs(targetHeroLocal - currentHeroLocal) < EPSILON) {
+      if (converged) {
         rafId = null;
         return;
       }
@@ -383,6 +436,8 @@ const Experience = forwardRef(function Experience({ audio, onActiveSectionChange
       cancelAnimationFrame(refreshId);
       trigger.kill();
       if (narrationTimeoutRef.current) clearTimeout(narrationTimeoutRef.current);
+      window.removeEventListener('video-blob-ready', onBlobReady);
+      if (fallbackId) clearTimeout(fallbackId);
     };
     // `audio.playNarration` is a stable useCallback reference (deps: []) that
     // reads current state via refs, so omitting `audio` here is intentional.
@@ -596,7 +651,7 @@ const Experience = forwardRef(function Experience({ audio, onActiveSectionChange
         {/* Canvas is the FIRST child and stays in the viewport via CSS sticky
             for the whole runway. The 4 spacers AFTER it supply the 900vh of
             scroll distance the master ScrollTrigger reads progress from. */}
-        <div ref={canvasRef} className="sticky top-0 h-screen w-full overflow-hidden bg-black">
+        <div ref={canvasRef} className="viewport-full sticky top-0 w-full overflow-hidden bg-black">
         {/* Inline initial opacity/pointerEvents match setLayerVisibility's
             output at scroll progress 0 (hero visible, rest hidden) — without
             this, all 4 layers sit at their CSS-default opacity 1 until the
@@ -648,7 +703,9 @@ const Experience = forwardRef(function Experience({ audio, onActiveSectionChange
           <Hub imgRef={scene4Ref} onTabletClick={handleTabletClick} />
         </div>
 
-        <FogParticles ref={fogParticlesRef} />
+        <Suspense fallback={null}>
+          <FogParticles ref={fogParticlesRef} />
+        </Suspense>
         <FogOverlay ref={fogRef} />
         <FilmGrain />
         <Vignette />

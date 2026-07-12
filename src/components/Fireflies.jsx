@@ -1,4 +1,12 @@
-const FIREFLY_COUNT = 22;
+const BASE_FIREFLY_COUNT = 22;
+// Each firefly is a `will-change`-promoted compositor layer (see .firefly in
+// index.css) — cheap individually, but halving the count on phones (same
+// threshold/pattern FogParticles.jsx uses) trims real GPU layer overhead on
+// weaker hardware. Computed once at module load, not per-render.
+const FIREFLY_COUNT =
+  typeof window !== 'undefined' && window.matchMedia('(max-width: 768px)').matches
+    ? Math.round(BASE_FIREFLY_COUNT / 2)
+    : BASE_FIREFLY_COUNT;
 
 // Deterministic scatter (golden-angle spacing keeps it visually random
 // without clumping) computed once at module load, not regenerated per

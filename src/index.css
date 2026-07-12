@@ -58,11 +58,34 @@ a:focus-visible {
 
 body.no-scroll {
   overflow: hidden;
-  height: 100vh;
+  height: 100vh; /* fallback for browsers without dvh support */
+  height: 100dvh;
 }
 
 #root {
+  min-height: 100vh; /* fallback for browsers without dvh support */
+  min-height: 100dvh;
+}
+
+/* 100vh on mobile Safari/Chrome is measured against the LARGEST possible
+   viewport (address bar hidden), not what's actually visible by default
+   (address bar showing) — so a plain `h-screen`/`100vh` element can render
+   taller than the real visible area, clipping content at the bottom or
+   visibly jumping as the browser chrome shows/hides during scroll. `dvh`
+   tracks the actual visible viewport and is what these two utility classes
+   use instead, wherever the codebase needs a genuinely full-viewport
+   element (Experience.jsx's sticky canvas, Terminal's section). The plain
+   vh line stays first as a fallback for the few browsers that don't
+   support dvh yet — they simply ignore the second, unrecognized dvh line
+   and keep using the vh value above it. */
+.viewport-full {
+  height: 100vh;
+  height: 100dvh;
+}
+
+.viewport-full-min {
   min-height: 100vh;
+  min-height: 100dvh;
 }
 
 * {
@@ -1015,6 +1038,25 @@ body.custom-cursor * {
 .navbar-3d {
   will-change: transform;
   transition: transform 0.6s cubic-bezier(0.25, 1, 0.5, 1);
+  /* Matches the px-4 py-4 sm:px-6 sm:py-6 lg:px-12 this replaced, plus
+     env(safe-area-inset-*) so the wordmark/links don't sit under a notch,
+     Dynamic Island, or rounded-corner cutout in landscape — env() resolves
+     to 0 on devices without one (and requires viewport-fit=cover in
+     index.html's viewport meta, or it's always 0 regardless of device). */
+  padding: calc(1rem + env(safe-area-inset-top)) calc(1rem + env(safe-area-inset-right))
+    1rem calc(1rem + env(safe-area-inset-left));
+}
+@media (min-width: 640px) {
+  .navbar-3d {
+    padding: calc(1.5rem + env(safe-area-inset-top)) calc(1.5rem + env(safe-area-inset-right))
+      1.5rem calc(1.5rem + env(safe-area-inset-left));
+  }
+}
+@media (min-width: 1024px) {
+  .navbar-3d {
+    padding-left: calc(3rem + env(safe-area-inset-left));
+    padding-right: calc(3rem + env(safe-area-inset-right));
+  }
 }
 
 /* Navbar.jsx top bar: a frosted glass strip riding over the video/canvas

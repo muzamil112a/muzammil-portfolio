@@ -44,6 +44,12 @@ export default function Hero({ videoRef, audio, isHeroActive }) {
           has buffered (Experience.jsx), so without this the very first frame
           the visitor sees is solid black for however long that buffering
           takes — a still of the video's own frame 0 closes that gap. */}
+      {/* No `src` here on purpose — Experience.jsx assigns it programmatically
+          from preloadAssets' already-downloaded bytes (utils/videoCache.js)
+          so the browser doesn't fetch this 5MB file a second time over the
+          network. A static `src` attribute here would start its own fetch
+          the instant this element mounts, before that logic gets a chance to
+          run, defeating the whole point. */}
       <video
         ref={videoRef}
         className="absolute inset-0 h-full w-full object-cover"
@@ -52,7 +58,6 @@ export default function Hero({ videoRef, audio, isHeroActive }) {
         playsInline
         preload="auto"
         poster="/assets/images/hero-poster.webp"
-        src="/assets/video/hero-walk.mp4"
       />
 
       {/* z-[5]: above the video, below the z-10 name overlay — the flash

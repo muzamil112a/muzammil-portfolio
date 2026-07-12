@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import gsap from 'gsap';
 import { preloadAssets } from '../utils/preloadAssets.js';
+import { storeVideoBlob } from '../utils/videoCache.js';
 import Flourish from '../components/Flourish.jsx';
 
 const GATE_BAR_COUNT = 9;
@@ -178,6 +179,9 @@ export default function Loading({ audio }) {
       },
       onAudioBuffer: (key, arrayBuffer) => {
         audio.storeRawBuffer(key, arrayBuffer);
+      },
+      onVideoBuffer: (key, arrayBuffer, mimeType) => {
+        storeVideoBlob(key, arrayBuffer, mimeType);
       },
     }).then(() => {
       realDoneRef.current = true;

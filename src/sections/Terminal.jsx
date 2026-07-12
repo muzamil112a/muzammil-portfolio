@@ -289,7 +289,7 @@ export default function Terminal({ audio }) {
     <section
       id="terminal"
       ref={sectionRef}
-      className="relative flex h-screen min-h-screen w-full items-center justify-center overflow-hidden bg-black px-4 sm:px-8"
+      className="viewport-full relative flex w-full items-center justify-center overflow-hidden bg-black px-4 sm:px-8"
     >
       {/* scene-5-terminal.png: gothic study desk with a CRT already sitting
           on it (front-facing, no camera angle), screen dark until "powered
@@ -297,16 +297,23 @@ export default function Terminal({ audio }) {
           (flat panel mode, see .terminal-bezel in index.css), shown at
           natural brightness on desktop where the terminal is mapped
           directly onto its screen glass. */}
-      <img
-        ref={bgImgRef}
-        src="/assets/images/scene-5-terminal.webp"
-        alt=""
-        aria-hidden="true"
-        loading="lazy"
-        decoding="async"
-        className="pointer-events-none absolute inset-0 h-full w-full object-cover object-center opacity-50 md:opacity-100"
-        style={{ transformOrigin: SCREEN_ORIGIN, willChange: 'transform' }}
-      />
+      {/* scene-5-terminal-mobile.webp is a pre-shrunk (1200px-wide) variant
+          — worth doing even though mobile shows it at 50% opacity (flat
+          panel mode above), since the browser still has to download and
+          decode the full desktop resolution otherwise. */}
+      <picture>
+        <source media="(max-width: 768px)" srcSet="/assets/images/scene-5-terminal-mobile.webp" />
+        <img
+          ref={bgImgRef}
+          src="/assets/images/scene-5-terminal.webp"
+          alt=""
+          aria-hidden="true"
+          loading="lazy"
+          decoding="async"
+          className="pointer-events-none absolute inset-0 h-full w-full object-cover object-center opacity-50 md:opacity-100"
+          style={{ transformOrigin: SCREEN_ORIGIN, willChange: 'transform' }}
+        />
+      </picture>
       <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-black/70 via-black/60 to-black md:from-black/25 md:via-black/5 md:to-black/35" />
 
       {/* transform-origin left at its CSS default (50% 50%, i.e. this box's

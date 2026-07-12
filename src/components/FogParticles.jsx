@@ -60,11 +60,16 @@ const FogParticles = forwardRef(function FogParticles(_props, ref) {
     const isMobile = window.matchMedia('(max-width: 768px)').matches;
     const particleCount = isMobile ? Math.round(BASE_PARTICLE_COUNT / 2) : BASE_PARTICLE_COUNT;
     const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    // Phone GPUs are weak relative to their high native DPR (many report 3+)
+    // — a full-viewport additive-blended canvas is fill-rate bound, so this
+    // caps mobile lower than desktop's already-capped MAX_DPR rather than
+    // letting a phone render at its full pixel ratio for no visible gain.
+    const maxDpr = isMobile ? 1 : MAX_DPR;
 
     const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: false });
     const scene = new THREE.Scene();
     const camera = new THREE.OrthographicCamera(0, 1, 1, 0, -10, 10);
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, MAX_DPR));
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, maxDpr));
     renderer.setSize(mount.clientWidth, mount.clientHeight);
     mount.appendChild(renderer.domElement);
 
@@ -102,26 +107,56 @@ const FogParticles = forwardRef(function FogParticles(_props, ref) {
     resize();
     window.addEventListener('resize', resize);
 
+    // All sprites share one SpriteMaterial instance (`material` above) —
+    // Three.js Sprites don't support per-instance opacity any other way
+    // without giving each its own material, which isn't worth the extra
+    // draw-call/material overhead here. Writing `baseOpacity` per particle
+    // inside the loop below was therefore pure waste: every sprite's
+    // material.opacity write just gets clobbered by the next one, so only
+    // the *last* particle's value ever actually rendered. Averaging once per
+    // frame, outside the loop, produces the same visible result (every
+    // sprite already rendered at one shared opacity) for a fraction of the
+    // per-frame writes.
+    const avgBaseOpacity = particles.reduce((sum, p) => sum + p.baseOpacity, 0) / particles.length;
+
     let rafId = null;
     let last = performance.now();
+    let visible = document.visibilityState !== 'hidden';
+    function onVisibilityChange() {
+      visible = document.visibilityState !== 'hidden';
+      if (visible && rafId === null) {
+        last = performance.now();
+        rafId = requestAnimationFrame(tick);
+      }
+    }
+    document.addEventListener('visibilitychange', onVisibilityChange);
+
     function tick(now) {
+      // requestAnimationFrame already pauses in most browsers once a tab is
+      // backgrounded, but explicitly bailing (and not rescheduling) here
+      // means a stray frame that sneaks through right at the transition
+      // doesn't keep the loop alive — onVisibilityChange restarts it.
+      if (!visible) {
+        rafId = null;
+        return;
+      }
       const dt = Math.min(0.05, (now - last) / 1000);
       last = now;
       const boost = 1 + intensityRef.current * 1.8;
+      material.opacity = Math.min(1, avgBaseOpacity * boost);
 
-      particles.forEach((p) => {
+      if (!reduceMotion) {
         // Drift/sway is the part reduced-motion cares about; the fog still
         // needs to breathe with scroll (opacity boost during fog-wipe
-        // transitions) even with motion reduced, so that keeps updating —
-        // it's a brightness change, not movement.
-        if (!reduceMotion) {
+        // transitions, set above) even with motion reduced, since that's a
+        // brightness change, not movement.
+        particles.forEach((p) => {
           p.sprite.position.x += p.speed * dt;
           if (p.sprite.position.x > 1.1) p.sprite.position.x = -0.1;
           p.swayPhase += p.swaySpeed * dt;
           p.sprite.position.y += Math.sin(p.swayPhase) * SWAY_AMPLITUDE * dt * 0.001;
-        }
-        p.sprite.material.opacity = Math.min(1, p.baseOpacity * boost);
-      });
+        });
+      }
 
       renderer.render(scene, camera);
       rafId = requestAnimationFrame(tick);
@@ -130,6 +165,7 @@ const FogParticles = forwardRef(function FogParticles(_props, ref) {
 
     return () => {
       window.removeEventListener('resize', resize);
+      document.removeEventListener('visibilitychange', onVisibilityChange);
       if (rafId) cancelAnimationFrame(rafId);
       material.dispose();
       texture.dispose();

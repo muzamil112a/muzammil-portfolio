@@ -19,7 +19,14 @@ const TABLETS = [
 const TABLET_TOP = '47%';
 const TABLET_HEIGHT = '16%';
 
-const EMBER_COUNT = 18;
+const BASE_EMBER_COUNT = 18;
+// Same mobile-halving pattern as Fireflies.jsx/FogParticles.jsx — each ember
+// is its own DOM node with an infinite CSS animation, so trimming the count
+// on phones is a real (if individually small) compositor-layer saving.
+const EMBER_COUNT =
+  typeof window !== 'undefined' && window.matchMedia('(max-width: 768px)').matches
+    ? Math.round(BASE_EMBER_COUNT / 2)
+    : BASE_EMBER_COUNT;
 
 // Deterministic scatter (golden-angle spacing keeps it visually random
 // without clumping) computed once at module load, not regenerated per
@@ -109,15 +116,22 @@ export default function Hub({ imgRef, onTabletClick }) {
     <>
       <SectionNumeral numeral="IV" side="right" />
 
-      <img
-        ref={imgRef}
-        src="/assets/images/scene-4-hub.webp"
-        alt=""
-        aria-hidden="true"
-        loading="eager"
-        decoding="async"
-        className="pointer-events-none absolute inset-0 h-full w-full object-cover object-center"
-      />
+      {/* scene-4-hub.webp is the single largest image asset (2560px-wide
+          source, ~400KB) — scene-4-hub-mobile.webp is a pre-shrunk 1200px
+          variant of the same crop, roughly a quarter the size, for phones
+          that never need that much resolution on a cropped background. */}
+      <picture>
+        <source media="(max-width: 768px)" srcSet="/assets/images/scene-4-hub-mobile.webp" />
+        <img
+          ref={imgRef}
+          src="/assets/images/scene-4-hub.webp"
+          alt=""
+          aria-hidden="true"
+          loading="eager"
+          decoding="async"
+          className="pointer-events-none absolute inset-0 h-full w-full object-cover object-center"
+        />
+      </picture>
       <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-black/50 via-transparent to-black/60" />
 
       <Fireflies />
