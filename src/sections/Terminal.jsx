@@ -188,6 +188,14 @@ export default function Terminal({ audio }) {
     const section = sectionRef.current;
     if (!img || !mount || !section) return undefined;
     if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return undefined;
+    // Desktop-only: below md the terminal is a flat, centered, full-width
+    // panel (see .terminal-mount's base rule in index.css), NOT mapped onto
+    // the photo's angled CRT glass — the spec (§7) calls for "no 3D
+    // transform" there. Scaling that full-width panel by up to 1.35 around a
+    // 54%/42% origin pushes its left edge off-screen, clipping the first
+    // character of every line (reported on-device). There's no "screen" to
+    // lean into in flat-panel mode anyway, so this effect is desktop-only.
+    if (window.matchMedia('(max-width: 767px)').matches) return undefined;
 
     const trigger = ScrollTrigger.create({
       trigger: section,
@@ -314,7 +322,12 @@ export default function Terminal({ audio }) {
           style={{ transformOrigin: SCREEN_ORIGIN, willChange: 'transform' }}
         />
       </picture>
-      <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-black/70 via-black/60 to-black md:from-black/25 md:via-black/5 md:to-black/35" />
+      {/* Mobile gradient lightened from the previous near-opaque
+          from-black/70 via-black/60 to-black — that (over the already
+          opacity-50 image) drowned scene-5 entirely, but the spec (§7) wants
+          it kept as a *dimmed, visible* background behind the flat panel.
+          Bottom stays darker to ground the panel. */}
+      <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-black/55 via-black/35 to-black/80 md:from-black/25 md:via-black/5 md:to-black/35" />
 
       {/* transform-origin left at its CSS default (50% 50%, i.e. this box's
           own center) deliberately — SCREEN_ORIGIN above is kept equal to

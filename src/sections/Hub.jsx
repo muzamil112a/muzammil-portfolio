@@ -238,8 +238,10 @@ export default function Hub({ imgRef, onTabletClick }) {
       {/* Mobile/portrait: object-cover crops this image too aggressively for
           the percentage coordinates above to land on the actual tablets, so
           this renders its own dedicated 2x2 grid over the lower third
-          instead of chasing image-relative positions. */}
-      <div className="absolute inset-x-0 bottom-0 z-10 grid grid-cols-2 gap-3 px-6 pb-10 md:hidden">
+          instead of chasing image-relative positions. pb-20 (not pb-10)
+          lifts the bottom row clear of the fixed bottom-right mute button,
+          which was overlapping the CONTACT tile on-device. */}
+      <div className="absolute inset-x-0 bottom-0 z-10 grid grid-cols-2 gap-3 px-6 pb-20 md:hidden">
         {TABLETS.map((tablet, i) => (
           <button
             key={tablet.id}
