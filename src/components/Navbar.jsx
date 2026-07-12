@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import gsap from 'gsap';
 
 const NAV_ITEMS = [
@@ -27,6 +27,48 @@ export default function Navbar({ onNavClick }) {
   const containerRef = useRef(null);
   const wordmarkRef = useRef(null);
   const itemsRef = useRef([]);
+  const menuRef = useRef(null);
+  const [menuOpen, setMenuOpen] = useState(false);
+
+  // Body scroll lock while the mobile menu is open — same `no-scroll` class
+  // Loading.jsx's own gate overlay uses, for one consistent mechanism rather
+  // than a second competing scroll-lock implementation. Realistically never
+  // overlaps with Loading's own use of it (that's long done by the time a
+  // visitor can even see this button), but Escape/close paths all route
+  // through `close()` below so the class can never get stuck on.
+  useEffect(() => {
+    if (menuOpen) document.body.classList.add('no-scroll');
+    else document.body.classList.remove('no-scroll');
+    return () => document.body.classList.remove('no-scroll');
+  }, [menuOpen]);
+
+  useEffect(() => {
+    if (!menuOpen) return undefined;
+    function onKeyDown(e) {
+      if (e.key === 'Escape') setMenuOpen(false);
+    }
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [menuOpen]);
+
+  // One-shot entrance for the dropdown each time it opens (menuOpen just
+  // toggled true, so this is a mount, not a resize/rerender) — matches the
+  // "fluid" fade/slide language the rest of the site's overlays use.
+  useEffect(() => {
+    if (!menuOpen || !menuRef.current) return undefined;
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return undefined;
+    const tl = gsap.fromTo(
+      menuRef.current,
+      { opacity: 0, y: -12 },
+      { opacity: 1, y: 0, duration: 0.35, ease: 'power2.out' }
+    );
+    return () => tl.kill();
+  }, [menuOpen]);
+
+  function handleMobileNavClick(id) {
+    setMenuOpen(false);
+    onNavClick?.(id);
+  }
 
   // Entrance: the whole bar "hinges" down into place (rotateX from a steep
   // angle, pivoting from its own top edge) like a glass visor lowering,
@@ -131,6 +173,41 @@ export default function Navbar({ onNavClick }) {
           </button>
         ))}
       </nav>
+
+      {/* Hamburger: the link row above is `hidden` below `md:`, so this is
+          mobile's only way into the other sections short of scrolling past
+          all of them manually. `after:` hit-slop matches MuteToggle.jsx's
+          same technique — 24px visible icon, 44px actual tap target. */}
+      <button
+        type="button"
+        onClick={() => setMenuOpen((v) => !v)}
+        aria-label={menuOpen ? 'Close menu' : 'Open menu'}
+        aria-expanded={menuOpen}
+        className="hamburger-btn pointer-events-auto relative flex h-6 w-6 flex-col items-center justify-center gap-[5px] after:absolute after:-inset-2.5 after:content-[''] md:hidden"
+      >
+        <span className={`hamburger-line ${menuOpen ? 'hamburger-line-top-open' : ''}`} />
+        <span className={`hamburger-line ${menuOpen ? 'hamburger-line-mid-open' : ''}`} />
+        <span className={`hamburger-line ${menuOpen ? 'hamburger-line-bottom-open' : ''}`} />
+      </button>
+
+      {menuOpen && (
+        <nav
+          ref={menuRef}
+          aria-label="Mobile navigation"
+          className="navbar-mobile-menu pointer-events-auto fixed inset-x-0 top-full z-40 flex flex-col md:hidden"
+        >
+          {NAV_ITEMS.map((item) => (
+            <button
+              key={item.id}
+              type="button"
+              onClick={() => handleMobileNavClick(item.id)}
+              className="navbar-mobile-link font-serif text-sm uppercase tracking-[0.3em] text-white/70 transition-colors duration-300 hover:text-gold"
+            >
+              {item.label}
+            </button>
+          ))}
+        </nav>
+      )}
     </div>
   );
 }
