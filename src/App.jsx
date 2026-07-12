@@ -6,7 +6,9 @@ import Contact from './sections/Contact.jsx';
 import Terminal from './sections/Terminal.jsx';
 import Experience from './components/Experience.jsx';
 import MuteToggle from './components/MuteToggle.jsx';
+import ScrollToTopButton from './components/ScrollToTopButton.jsx';
 import CustomCursor from './components/CustomCursor.jsx';
+import Navbar from './components/Navbar.jsx';
 import RomanNav from './components/RomanNav.jsx';
 import DiamondNav from './components/DiamondNav.jsx';
 import Subtitles from './components/Subtitles.jsx';
@@ -37,13 +39,15 @@ export default function App() {
     <div className="relative w-full bg-fog-900">
       <main>
         <Experience ref={experienceRef} audio={audio} onActiveSectionChange={setExperienceIndex} />
-        <Contact />
+        <Contact audio={audio} />
         <Terminal audio={audio} />
       </main>
       <Loading audio={audio} />
       <Subtitles />
       <MuteToggle audio={audio} />
+      <ScrollToTopButton />
       <CustomCursor />
+      <Navbar onNavClick={handleNavClick} />
       <RomanNav activeIndex={activeSection} onNavClick={handleNavClick} />
       <DiamondNav activeIndex={activeSection} onNavClick={handleNavClick} />
     </div>

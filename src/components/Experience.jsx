@@ -9,7 +9,6 @@ import Hub from '../sections/Hub.jsx';
 import FilmGrain from './FilmGrain.jsx';
 import FogOverlay from './FogOverlay.jsx';
 import FogParticles from './FogParticles.jsx';
-import Navbar from './Navbar.jsx';
 import OverlayModal from './OverlayModal.jsx';
 import Vignette from './Vignette.jsx';
 
@@ -97,6 +96,15 @@ const HERO_WALK_MS = 9000;
 // narration-1 might still be playing — see handleGateOpened below.
 const HERO_WALK_SAFETY = 0.01;
 
+// Longest narration clip (narration-1) runs ~9.3s. If 'narration-end' never
+// fires for some reason — a decode failure (playNarration silently no-ops on
+// a missing buffer), a playback error, an autoplay-policy quirk — the
+// auto-scroll orchestrator below has nothing else to wait on and would
+// otherwise hang on that section forever with no visible error. This timeout
+// is the fallback: generous enough to never cut off a real narration early,
+// but bounded so a failure can't freeze the whole cinematic intro.
+const NARRATION_WAIT_TIMEOUT_MS = 15000;
+
 const MAX_SCROLL_VELOCITY = 2500; // px/s mapped to scroll-intensity 1
 const SCROLL_INTENSITY_LERP = 0.15;
 
@@ -111,26 +119,25 @@ const LINE_DRAW_WINDOW = 0.16;
 const LABEL_MAX_OPACITY = 0.4;
 const LABEL_PARALLAX_PX = 14;
 
-// Mirrors my cv.pdf's Technical Skills / Soft Skills / Certifications
-// sections one-for-one — keep the two in sync when the CV changes.
+// Mirrors Profile.pdf's Summary / Top Skills / Experience sections — keep
+// the two in sync when the profile changes.
 const SKILL_GROUPS = [
   {
-    title: 'AI & Automation',
-    items: ['n8n', 'Zapier', 'Workflow Automation', 'AI Agents', 'Claude', 'ChatGPT', 'Prompt Engineering'],
+    title: 'Quality Assurance',
+    items: ['Software Testing', 'Bug Identification', 'Usability Testing', 'UI/UX Design'],
   },
   {
-    title: 'Integrations & APIs',
-    items: ['REST APIs', 'Webhooks', 'MCP Servers', 'Google Sheets Integration', 'Third-Party System Integration'],
+    title: 'SEO',
+    items: ['Keyword Research', 'On-Page SEO', 'Technical SEO', 'Link-Building Strategies'],
+  },
+  {
+    title: 'Operations',
+    items: ['Operations Management', 'Client Relations', 'NOC Support'],
   },
   { title: 'Development', items: ['JavaScript', 'HTML', 'CSS', 'Git & GitHub'] },
-  { title: 'Tools', items: ['Postman', 'Windsurf IDE', 'VS Code'] },
   {
     title: 'Soft Skills',
-    items: ['Problem Solving', 'Communication', 'Teamwork', 'Adaptability', 'Analytical Thinking'],
-  },
-  {
-    title: 'Certifications',
-    items: ['Microsoft Technology Associate (MTA)', 'Google AI Essentials'],
+    items: ['Communication', 'Problem Solving', 'Teamwork', 'Adaptability', 'Analytical Thinking'],
   },
 ];
 
@@ -220,12 +227,13 @@ const Experience = forwardRef(function Experience({ audio, onActiveSectionChange
 
   useEffect(() => {
     const video = videoRef.current;
-    let duration = 0;
-    const setDuration = () => {
-      duration = video.duration || 0;
-    };
-    video.addEventListener('loadedmetadata', setDuration);
-    if (video.readyState >= 1) setDuration();
+    // `preload="auto"` on the <video> tag (Hero.jsx) is only a hint — Chrome's
+    // own heuristics can leave a never-played video sitting at readyState 0
+    // indefinitely (reproduced: stuck at HAVE_NOTHING 14s+ on a fresh tab,
+    // even though preloadAssets already downloaded the same file). An
+    // explicit `load()` forces the browser to actually start fetching
+    // instead of gambling on that heuristic.
+    video.load();
 
     let targetHeroLocal = 0;
     let currentHeroLocal = 0;
@@ -233,7 +241,11 @@ const Experience = forwardRef(function Experience({ audio, onActiveSectionChange
     const applyVideoFrame = () => {
       const diff = targetHeroLocal - currentHeroLocal;
       currentHeroLocal += Math.abs(diff) < EPSILON ? diff : diff * LERP_FACTOR;
-      if (duration > 0) video.currentTime = currentHeroLocal * duration;
+      // Reads video.duration live each frame rather than caching it from a
+      // one-shot 'loadedmetadata' listener — if that event is ever missed or
+      // significantly delayed (the same readyState-stall above), a cached
+      // duration of 0 would silently freeze the scrub forever with no retry.
+      if (video.duration > 0) video.currentTime = currentHeroLocal * video.duration;
 
       if (Math.abs(targetHeroLocal - currentHeroLocal) < EPSILON) {
         rafId = null;
@@ -366,7 +378,6 @@ const Experience = forwardRef(function Experience({ audio, onActiveSectionChange
     const refreshId = requestAnimationFrame(() => ScrollTrigger.refresh());
 
     return () => {
-      video.removeEventListener('loadedmetadata', setDuration);
       if (onMouseMove) window.removeEventListener('mousemove', onMouseMove);
       if (rafId) cancelAnimationFrame(rafId);
       cancelAnimationFrame(refreshId);
@@ -471,14 +482,23 @@ const Experience = forwardRef(function Experience({ audio, onActiveSectionChange
       function waitForNarration(index) {
         if (audio.hasNarrationCompleted(index)) return Promise.resolve();
         return new Promise((resolve) => {
+          const timeoutId = setTimeout(() => {
+            window.removeEventListener('narration-end', handler);
+            pendingNarrationCleanup = null;
+            resolve();
+          }, NARRATION_WAIT_TIMEOUT_MS);
           function handler(e) {
             if (e.detail.index !== index) return;
+            clearTimeout(timeoutId);
             window.removeEventListener('narration-end', handler);
             pendingNarrationCleanup = null;
             resolve();
           }
           window.addEventListener('narration-end', handler);
-          pendingNarrationCleanup = () => window.removeEventListener('narration-end', handler);
+          pendingNarrationCleanup = () => {
+            clearTimeout(timeoutId);
+            window.removeEventListener('narration-end', handler);
+          };
         });
       }
 
@@ -632,8 +652,6 @@ const Experience = forwardRef(function Experience({ audio, onActiveSectionChange
         <FogOverlay ref={fogRef} />
         <FilmGrain />
         <Vignette />
-
-        <Navbar onNavClick={handleTabletClick} />
 
         {skillsOpen && (
           <OverlayModal title="SKILLS" onClose={() => setSkillsOpen(false)}>

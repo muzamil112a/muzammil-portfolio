@@ -52,19 +52,22 @@ export default function About({ imgRef, panelRef }) {
             <span className="h-px w-10 bg-current" />
             <span className="h-1 w-1 rotate-45 bg-current" />
           </div>
-          {/* Copy mirrors my cv.pdf's Professional Summary / Education /
-              Certifications — keep in sync when the CV changes. */}
+          {/* Copy mirrors Profile.pdf's Summary / Experience / Education —
+              keep in sync when the profile changes. */}
           <p className="mt-6 font-serif text-base leading-relaxed text-white/80">
-            Software Engineering graduate (University of Lahore, 2021–2025). Junior AI
-            Automation Engineer at Wanile Technologies, Lahore.
+            Software Engineering graduate (University of Lahore, 2021–2025). Currently
+            supporting NOC operations for Tech Direct Support in Australia, and working
+            as a Search Engine Optimizer at Wanile Technologies, Lahore.
           </p>
           <p className="mt-5 font-serif text-base leading-relaxed text-white/80">
-            Designs end-to-end automated systems with n8n, Zapier, MCP Servers, REST
-            APIs, and AI models (Claude, ChatGPT) — connecting applications, data
-            sources, and AI services to eliminate manual processes.
+            Brings Quality Assurance to the table — software testing, bug
+            identification, and usability improvements — built on a foundation in
+            UI/UX design, so interfaces stay as functional as they are user-friendly.
+            Currently building out SEO fundamentals: keyword research, on-page and
+            technical SEO, and link-building strategies.
           </p>
           <p className="mt-5 font-serif text-xs uppercase tracking-[0.2em] text-gold-dim">
-            Microsoft Technology Associate · Google AI Essentials
+            Communication · Client Relations · Operations Management
           </p>
         </div>
       </div>

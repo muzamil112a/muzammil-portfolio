@@ -6,9 +6,9 @@ gsap.registerPlugin(ScrollTrigger);
 
 const BOOT_LINES = [
   'loading muzammil data...',
-  'automation engine ......... sync',
-  'workflow registry ......... bound',
-  'mcp handshake ............. ok',
+  'qa test suite ............. sync',
+  'seo index ................. bound',
+  'noc uplink ................ ok',
   'narrator link ............. ready',
   'ready for user input',
 ];
@@ -16,7 +16,7 @@ const BOOT_LINES = [
 const GREETING = "I am WARDEN.AI — the keeper of this estate. Type 'help' to begin.";
 
 // WARDEN.AI's entire brain lives in src/data/wardenKnowledge.js — a purely
-// local data store (commands + keyword-scored topics from my cv.pdf), no
+// local data store (commands + keyword-scored topics from Profile.pdf), no
 // LLM, no network. This file only renders whatever resolveResponse returns;
 // update the bot by editing the data module, never this component.
 const CHAR_MS = 20;
@@ -145,6 +145,31 @@ export default function Terminal({ audio }) {
     // Experience.jsx.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [printLines]);
+
+  // Terminal is the actual page footer — the ambient tension bed (see
+  // useAudioManager.js's applyModulation) should fade out once the visitor
+  // is here rather than keep playing at whatever level it was frozen at
+  // when they scrolled past Experience's canvas. A SEPARATE observer from
+  // the boot one above on purpose: that one is intentionally one-shot
+  // (disconnects itself after the first entry), but this needs to react
+  // every time the visitor scrolls in or back out — e.g. scrolling up from
+  // Terminal into Contact should bring the ambience back, not leave it
+  // silenced forever after one visit to the footer.
+  useEffect(() => {
+    const el = sectionRef.current;
+    if (!el) return undefined;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          audio?.setFooterActive(entry.isIntersecting);
+        });
+      },
+      { threshold: 0.2 }
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // "Leaning in to the machine": scales the background photo toward the
   // screen's center as the section scrolls into place. Purely visual —

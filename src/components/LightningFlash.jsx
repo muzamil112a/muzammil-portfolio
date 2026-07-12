@@ -9,10 +9,24 @@ import gsap from 'gsap';
 // Experience, not state) gates each strike so lightning never fires — flash
 // or thunder — while the visitor is in a different section, without this
 // component re-rendering on every section change.
-const FIRST_STRIKE_MIN_MS = 12000; // past the intro narration before the first one
-const FIRST_STRIKE_MAX_MS = 20000;
-const STRIKE_GAP_MIN_MS = 16000;
-const STRIKE_GAP_MAX_MS = 34000;
+// The cinematic auto-scroll only dwells in Hero for ~9-10s (HERO_WALK_MS +
+// narration-1's own ~9.3s, whichever is longer, in Experience.jsx) before
+// advancing to About. The first-strike window is anchored to 'gate-opened'
+// (see below), not to this component's own mount — Hero/LightningFlash
+// mount as soon as the app loads, well before the visitor has clicked
+// through Loading's own gate stages (its own MIN_LOADING_MS floor, plus
+// however long they take to click "ENTER THE FOG" then "PLAY CINEMATIC").
+// Anchoring to mount meant the random window routinely elapsed while the
+// Loading overlay still covered the screen — and often before audio.init()
+// had even run (only called from Loading's handleEnter), so playThunder()
+// silently no-op'd on a null AudioContext. By the time the visitor actually
+// saw the walk, the schedule had already moved on to the next 14-28s gap,
+// well past Hero's short dwell — reported as "there's no lightning effect"
+// despite the system being wired up correctly.
+const FIRST_STRIKE_MIN_MS = 3000;
+const FIRST_STRIKE_MAX_MS = 6000;
+const STRIKE_GAP_MIN_MS = 14000;
+const STRIKE_GAP_MAX_MS = 28000;
 const THUNDER_DELAY_MIN_MS = 1200; // light first, sound later — distance
 const THUNDER_DELAY_MAX_MS = 2600;
 
@@ -53,10 +67,21 @@ export default function LightningFlash({ audio, isHeroActive }) {
       strikeTimeout = setTimeout(strike, rand(STRIKE_GAP_MIN_MS, STRIKE_GAP_MAX_MS));
     }
 
-    strikeTimeout = setTimeout(strike, rand(FIRST_STRIKE_MIN_MS, FIRST_STRIKE_MAX_MS));
+    function startSchedule() {
+      strikeTimeout = setTimeout(strike, rand(FIRST_STRIKE_MIN_MS, FIRST_STRIKE_MAX_MS));
+    }
+
+    // 'gate-opened' fires exactly once per visit, dispatched from Loading.jsx
+    // partway through its gate timeline — by then audio.init() has already
+    // been awaited (Loading's handleEnter), so the AudioContext exists the
+    // moment this schedule's thunder call can fire. If the visitor has
+    // prefers-reduced-motion this effect already returned above, so this
+    // listener is never attached in that case.
+    window.addEventListener('gate-opened', startSchedule, { once: true });
 
     return () => {
       alive = false;
+      window.removeEventListener('gate-opened', startSchedule);
       clearTimeout(strikeTimeout);
       clearTimeout(thunderTimeout);
       tl?.kill();

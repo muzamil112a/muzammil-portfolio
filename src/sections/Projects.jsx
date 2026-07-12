@@ -1,40 +1,23 @@
 import SectionNumeral from '../components/SectionNumeral.jsx';
 
-// Sourced from my cv.pdf (Experience + Key Projects sections) — one card per
-// distinct body of work, not per bullet point. Set `link` to a GitHub repo /
-// live demo / case-study URL to make that card clickable; null renders the
-// same card as a plain (non-link) panel.
+// Sourced from Profile.pdf's Experience section — one card per role, not per
+// bullet point. Set `link` to a company site / case-study URL to make that
+// card clickable; null renders the same card as a plain (non-link) panel.
 const PROJECTS = [
   {
-    title: 'AI-Powered Workflow Automation',
+    title: 'Search Engine Optimizer',
     description:
-      'n8n + Zapier workflows connecting web forms, email, Google Sheets, and AI services; intelligent routing and data extraction.',
-    tags: ['n8n', 'Zapier', 'REST APIs', 'AI'],
+      'Wanile Technologies, Lahore — learning and practicing SEO fundamentals: keyword research, on-page SEO, technical SEO, and link-building strategies.',
+    tags: ['SEO', 'Keyword Research', 'Technical SEO'],
     index: '01',
     link: null,
   },
   {
-    title: 'Pharmacy Management System',
+    title: 'NOC — Tech Direct Support',
     description:
-      'Full-stack app with authentication, inventory, prescriptions, billing, and an analytics dashboard; AI-assisted development.',
-    tags: ['Full-Stack', 'Auth', 'Analytics'],
+      'Australia (remote) — network operations and tech support, keeping systems monitored and client issues resolved.',
+    tags: ['Operations', 'NOC', 'Client Support'],
     index: '02',
-    link: null,
-  },
-  {
-    title: 'MCP Server Integrations',
-    description:
-      'Configured MCP servers connecting Claude and other AI models to local files, APIs, and external services — real tool access, not just chat.',
-    tags: ['MCP', 'Claude', 'Integrations'],
-    index: '03',
-    link: null,
-  },
-  {
-    title: 'AI Content & Data Pipelines',
-    description:
-      'Automated content generation, data extraction, and intelligent routing systems that cut repetitive manual work out of daily operations.',
-    tags: ['Automation', 'Data Extraction', 'ChatGPT'],
-    index: '04',
     link: null,
   },
 ];
@@ -42,15 +25,62 @@ const PROJECTS = [
 // Renders a project card as a real anchor (new tab) when `link` is set, or a
 // plain div otherwise — identical styling/children either way, so filling in
 // a PROJECTS entry's `link` is the only step needed to make a card live.
-function CardShell({ link, className, children }) {
+function CardShell({ link, className, onMouseMove, onMouseLeave, children }) {
   if (link) {
     return (
-      <a href={link} target="_blank" rel="noopener noreferrer" className={className}>
+      <a
+        href={link}
+        target="_blank"
+        rel="noopener noreferrer"
+        className={className}
+        onMouseMove={onMouseMove}
+        onMouseLeave={onMouseLeave}
+      >
         {children}
       </a>
     );
   }
-  return <div className={className}>{children}</div>;
+  return (
+    <div className={className} onMouseMove={onMouseMove} onMouseLeave={onMouseLeave}>
+      {children}
+    </div>
+  );
+}
+
+// Mouse-tracked tilt + a spotlight (the radial-gradient glow below, now
+// positioned via --mx/--my instead of a fixed point) that follows the
+// cursor across the card face. Written directly to the DOM on `currentTarget`
+// rather than through React state — this needs to update every mousemove
+// without triggering a re-render, the same performance reasoning as
+// CustomCursor.jsx's rAF-driven style writes. Deliberately NOT applied to
+// `cardsRef.current[i]` (the wrapper Experience.jsx's scroll onUpdate
+// already writes opacity/translateY to for the entrance stagger) — this
+// targets the CardShell element one level in, so the two inline-style
+// writers never fight over the same node's `transform`.
+// `transitionProperty` is toggled off during active tracking (so the tilt
+// snaps 1:1 with the cursor instead of lagging through the card's own
+// hover transition) and restored on leave (so the spring-back to neutral
+// eases smoothly via that same CSS transition).
+const TILT_MAX_DEG = 8;
+
+function handleCardPointerMove(e) {
+  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  const card = e.currentTarget;
+  const rect = card.getBoundingClientRect();
+  const px = (e.clientX - rect.left) / rect.width;
+  const py = (e.clientY - rect.top) / rect.height;
+  const rotateY = (px - 0.5) * TILT_MAX_DEG * 2;
+  const rotateX = (0.5 - py) * TILT_MAX_DEG * 2;
+  card.style.transitionProperty = 'border-color, box-shadow';
+  card.style.transform = `perspective(900px) rotateX(${rotateX.toFixed(2)}deg) rotateY(${rotateY.toFixed(2)}deg) translateY(-4px) scale(1.02)`;
+  card.style.setProperty('--mx', `${(px * 100).toFixed(1)}%`);
+  card.style.setProperty('--my', `${(py * 100).toFixed(1)}%`);
+}
+
+function handleCardPointerLeave(e) {
+  const card = e.currentTarget;
+  card.style.transitionProperty = '';
+  card.style.transform = '';
 }
 
 // Presentational Projects layer: scene-3.png + 2 project cards. Ken Burns +
@@ -92,7 +122,7 @@ export default function Projects({ imgRef, cardsRef, lineRef, labelsRef }) {
       <div className="absolute inset-x-0 bottom-0 z-10 flex flex-col items-center px-6 pb-16 sm:pb-20">
         <div className="mb-5 w-full max-w-4xl">
           <p className="mb-3 font-serif text-[11px] uppercase tracking-[0.5em] text-gold-dim/80">
-            Selected Work
+            Where I Work
           </p>
           <div
             ref={lineRef}
@@ -102,8 +132,8 @@ export default function Projects({ imgRef, cardsRef, lineRef, labelsRef }) {
           />
         </div>
 
-        {/* 2x2 at every width — with four cards, a single mobile column would
-            stack taller than the 100vh canvas this layer lives in, so phones
+        {/* Two columns at every width — a single mobile column would stack
+            taller than the 100vh canvas this layer lives in, so phones
             instead get two compact columns with the descriptions hidden. */}
         <div className="grid w-full max-w-4xl grid-cols-2 gap-x-3 gap-y-9 sm:gap-x-6 sm:gap-y-10">
           {PROJECTS.map((project, i) => (
@@ -135,18 +165,24 @@ export default function Projects({ imgRef, cardsRef, lineRef, labelsRef }) {
                     anchor (new tab) and advertises itself via cursor. */}
                 <CardShell
                   link={project.link}
-                  className="group relative block overflow-hidden rounded-sm border border-gold-faint bg-black/40 p-4 backdrop-blur-md transition-[border-color,box-shadow,transform] duration-300 hover:-translate-y-1 hover:scale-[1.015] hover:border-gold-dim hover:shadow-[0_12px_40px_rgba(0,0,0,0.5),0_0_28px_rgba(201,162,39,0.22)] sm:p-6"
+                  onMouseMove={handleCardPointerMove}
+                  onMouseLeave={handleCardPointerLeave}
+                  className="group relative block overflow-hidden rounded-sm border border-gold-faint bg-black/40 p-4 backdrop-blur-md transition-[border-color,box-shadow] duration-300 [transform-style:preserve-3d] will-change-transform hover:border-gold-dim hover:shadow-[0_12px_40px_rgba(0,0,0,0.5),0_0_28px_rgba(201,162,39,0.22)] sm:p-6"
                 >
                   <div
                     aria-hidden="true"
                     className="absolute inset-x-0 top-0 h-px origin-left scale-x-50 bg-gradient-to-r from-transparent via-gold-dim to-transparent opacity-60 transition-[transform,opacity] duration-500 ease-out group-hover:scale-x-100 group-hover:opacity-100"
                   />
+                  {/* Spotlight tracks the cursor via --mx/--my (set by
+                      handleCardPointerMove above) instead of sitting at a
+                      fixed point, so the glow reads as light following your
+                      hand across the card face. */}
                   <div
                     aria-hidden="true"
                     className="pointer-events-none absolute inset-0 scale-100 opacity-0 transition-[transform,opacity] duration-500 ease-out group-hover:scale-110 group-hover:opacity-100"
                     style={{
                       background:
-                        'radial-gradient(ellipse at 30% 20%, rgba(201,162,39,0.12) 0%, rgba(201,162,39,0) 70%)',
+                        'radial-gradient(ellipse at var(--mx, 30%) var(--my, 20%), rgba(201,162,39,0.16) 0%, rgba(201,162,39,0) 70%)',
                     }}
                   />
 

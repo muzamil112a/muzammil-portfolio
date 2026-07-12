@@ -286,19 +286,24 @@ export default function Loading({ audio }) {
       0.1
     );
     // SPEC (layered cinematic timeline): narration, subtitles, doors, and
-    // the character's walk all run CONCURRENTLY, not as a chain. Narration-1
-    // starts partway through the gate swinging open, and 'gate-opened' —
-    // which kicks off Experience.jsx's auto-scroll walk — fires in the same
-    // beat rather than waiting for the timeline's end, so the man is already
-    // mid-stride as the doors part. Insertion order matters: narration first
-    // (same-position calls run in insertion order), so the walk orchestrator
-    // attaches its narration-end listener after 'narration-start' exists.
-    // The 0.7s position clears the gate creak's loudest attack transient —
-    // narration-1 has ZERO leading silence ("In every fog" is its first
-    // 1.9s), so starting the voice under the creak's peak buried the whole
-    // opening phrase (reported as "narrator starts mid-sentence").
-    tl.call(() => audio.playNarration(1), [], 0.7);
+    // the character's walk all run CONCURRENTLY, not as a chain. 'gate-opened'
+    // — which kicks off Experience.jsx's auto-scroll walk — fires at 0.7s so
+    // the man is already mid-stride as the doors part; it does not need
+    // narration-1 to have started first (Experience.jsx's waitForNarration
+    // only listens for 'narration-end', so it's fine to attach that listener
+    // before playback even begins).
+    // Narration-1 itself starts later, at 1.0s: measuring the actual clips
+    // showed the 0.7s position (previously shared with 'gate-opened') still
+    // landed inside gate-creak.mp3's loud sustained span (it stays strong
+    // through ~1.9s of its own 3s length, not just a brief opening
+    // transient) — narration-1 has ZERO leading silence ("In every fog" is
+    // its first word), so starting the voice there was still burying the
+    // opening phrase (reported as "narrator starts mid-sentence"). Paired
+    // with useAudioManager.js now ducking the creak the instant narration
+    // starts, the extra 0.3s gives the duck ramp a moment to land before the
+    // voice needs to be clearly heard.
     tl.call(() => window.dispatchEvent(new Event('gate-opened')), [], 0.7);
+    tl.call(() => audio.playNarration(1), [], 1.0);
     tl.to(fogSpikeRef.current, { opacity: 0, duration: 0.9, ease: 'power1.in' }, 1.6);
   }
 
@@ -362,17 +367,29 @@ export default function Loading({ audio }) {
           )}
 
           {stage === 'choice' && (
-            <div className="loading-fade-up flex flex-col items-center gap-5">
+            <div className="loading-fade-up flex flex-col items-center gap-6">
               <button
                 type="button"
                 onClick={() => handleChoice(false)}
-                className="group relative overflow-hidden rounded-sm border border-gold-dim px-10 py-3 font-display text-sm tracking-[0.4em] text-gold transition duration-300 hover:border-gold hover:shadow-[0_0_24px_rgba(201,162,39,0.35)]"
+                className="ornate-btn group rounded-sm px-12 py-4 font-display text-sm tracking-[0.4em] text-gold"
               >
-                <span className="pointer-events-none absolute inset-0 -translate-x-full bg-gold/10 transition-transform duration-700 ease-out group-hover:translate-x-0" />
-                <span className="relative animate-pulse">ENTER THE FOG</span>
+                <span aria-hidden="true" className="ornate-corner ornate-corner-tl" />
+                <span aria-hidden="true" className="ornate-corner ornate-corner-tr" />
+                <span aria-hidden="true" className="ornate-corner ornate-corner-bl" />
+                <span aria-hidden="true" className="ornate-corner ornate-corner-br" />
+                <span aria-hidden="true" className="ornate-sheen rounded-sm" />
+                <span className="relative z-10 inline-flex items-center gap-4">
+                  <span aria-hidden="true" className="h-1 w-1 rotate-45 bg-gold-dim transition group-hover:bg-gold" />
+                  ENTER THE FOG
+                  <span aria-hidden="true" className="h-1 w-1 rotate-45 bg-gold-dim transition group-hover:bg-gold" />
+                </span>
               </button>
 
-              <div className="h-px w-10 bg-gold-faint" />
+              <div aria-hidden="true" className="flex items-center gap-3 text-gold-faint">
+                <span className="h-px w-8 bg-current" />
+                <span className="h-1 w-1 rotate-45 bg-current" />
+                <span className="h-px w-8 bg-current" />
+              </div>
 
               <button
                 type="button"
@@ -388,17 +405,69 @@ export default function Loading({ audio }) {
           )}
 
           {stage === 'ready' && (
-            <div className="loading-fade-up flex flex-col items-center gap-5">
-              <p className="font-serif text-xs italic tracking-wide text-white/50">
+            <div className="loading-fade-up flex flex-col items-center gap-7">
+              <p className="font-serif text-sm italic tracking-wide text-white/50">
                 The gate is ready. Step through when you are.
               </p>
               <button
                 type="button"
                 onClick={() => handleEnter(false)}
-                className="group relative overflow-hidden rounded-sm border border-gold-dim px-10 py-3 font-display text-sm tracking-[0.4em] text-gold transition duration-300 hover:border-gold hover:shadow-[0_0_24px_rgba(201,162,39,0.35)]"
+                className="group flex flex-col items-center gap-6"
               >
-                <span className="pointer-events-none absolute inset-0 -translate-x-full bg-gold/10 transition-transform duration-700 ease-out group-hover:translate-x-0" />
-                <span className="relative animate-pulse">PLAY CINEMATIC</span>
+                <span className="play-emblem">
+                  <span aria-hidden="true" className="play-halo" />
+                  <svg
+                    aria-hidden="true"
+                    className="play-ring-dashed absolute inset-0 h-full w-full"
+                    viewBox="0 0 148 148"
+                  >
+                    <circle
+                      cx="74"
+                      cy="74"
+                      r="70"
+                      fill="none"
+                      stroke="rgba(201,162,39,0.4)"
+                      strokeWidth="1"
+                      strokeDasharray="3 9"
+                    />
+                  </svg>
+                  <svg
+                    aria-hidden="true"
+                    className="absolute inset-[14px] h-[calc(100%-28px)] w-[calc(100%-28px)] transition duration-500 group-hover:drop-shadow-[0_0_16px_rgba(201,162,39,0.45)]"
+                    viewBox="0 0 120 120"
+                  >
+                    <circle
+                      cx="60"
+                      cy="60"
+                      r="58"
+                      fill="rgba(201,162,39,0.05)"
+                      stroke="rgba(201,162,39,0.65)"
+                      strokeWidth="1"
+                    />
+                  </svg>
+                  <svg
+                    aria-hidden="true"
+                    width="32"
+                    height="36"
+                    viewBox="0 0 34 38"
+                    className="relative ml-1.5 transition-transform duration-500 ease-out group-hover:scale-110"
+                    style={{ filter: 'drop-shadow(0 0 10px rgba(232,166,60,0.55))' }}
+                  >
+                    <path
+                      d="M3 3 L31 19 L3 35 Z"
+                      fill="rgba(232,166,60,0.12)"
+                      stroke="#e8a63c"
+                      strokeWidth="1.5"
+                      strokeLinejoin="round"
+                    />
+                  </svg>
+                </span>
+                <span className="flex flex-col items-center gap-2">
+                  <span className="font-display text-sm tracking-[0.45em] text-gold transition group-hover:text-[#e8c35a] group-hover:drop-shadow-[0_0_10px_rgba(201,162,39,0.5)]">
+                    PLAY CINEMATIC
+                  </span>
+                  <span className="h-px w-16 bg-gold-faint transition-all duration-500 group-hover:w-28 group-hover:bg-gold-dim" />
+                </span>
               </button>
             </div>
           )}

@@ -30,6 +30,16 @@ const OPACITY_LERP_PER_60FPS_FRAME = 0.18;
 const MAX_DT = 1 / 20; // clamp so a stalled tab doesn't jump-cut the ring on resume
 const INTERACTIVE_SELECTOR = 'a, button, input, textarea, [role="button"]';
 
+// Torchlight: a large, heavily-blurred warm glow that drags well behind the
+// ring/dot — a much slower lerp than either (0.05 vs the ring's 0.2) so it
+// reads as a lantern swinging a beat behind your hand, not another cursor
+// layer. `mixBlendMode: screen` only ever adds light, so it's safe to sit
+// above nav/text/buttons without hurting legibility — it brightens whatever
+// gold is underneath it (the intended "revealing gold details" effect)
+// rather than washing anything out.
+const TORCH_SIZE = 640;
+const TORCH_LERP_PER_60FPS_FRAME = 0.05;
+
 function frameLerp(current, target, perFrameFactor, dt) {
   const factor = 1 - (1 - perFrameFactor) ** (dt * 60);
   return current + (target - current) * factor;
@@ -38,6 +48,7 @@ function frameLerp(current, target, perFrameFactor, dt) {
 export default function CustomCursor() {
   const dotRef = useRef(null);
   const ringRef = useRef(null);
+  const torchRef = useRef(null);
 
   useEffect(() => {
     if (!window.matchMedia('(pointer: fine)').matches) return undefined;
@@ -50,6 +61,8 @@ export default function CustomCursor() {
     let ringY = targetY;
     let ringScale = RING_SCALE_MIN;
     let ringOpacity = 0.7;
+    let torchX = targetX;
+    let torchY = targetY;
     let hovering = false;
     let rafId = null;
     let lastTime = performance.now();
@@ -68,6 +81,8 @@ export default function CustomCursor() {
       ringY = frameLerp(ringY, targetY, POSITION_LERP_PER_60FPS_FRAME, dt);
       ringScale = frameLerp(ringScale, hovering ? 1 : RING_SCALE_MIN, SCALE_LERP_PER_60FPS_FRAME, dt);
       ringOpacity = frameLerp(ringOpacity, hovering ? 1 : 0.7, OPACITY_LERP_PER_60FPS_FRAME, dt);
+      torchX = frameLerp(torchX, targetX, TORCH_LERP_PER_60FPS_FRAME, dt);
+      torchY = frameLerp(torchY, targetY, TORCH_LERP_PER_60FPS_FRAME, dt);
 
       if (dotRef.current) {
         dotRef.current.style.transform = `translate3d(${targetX}px, ${targetY}px, 0) translate(-50%, -50%)`;
@@ -75,6 +90,9 @@ export default function CustomCursor() {
       if (ringRef.current) {
         ringRef.current.style.transform = `translate3d(${ringX}px, ${ringY}px, 0) translate(-50%, -50%) scale(${ringScale})`;
         ringRef.current.style.opacity = String(ringOpacity);
+      }
+      if (torchRef.current) {
+        torchRef.current.style.transform = `translate3d(${torchX}px, ${torchY}px, 0) translate(-50%, -50%)`;
       }
       rafId = requestAnimationFrame(tick);
     }
@@ -91,6 +109,19 @@ export default function CustomCursor() {
 
   return (
     <>
+      <div
+        ref={torchRef}
+        aria-hidden="true"
+        className="pointer-events-none fixed left-0 top-0 z-[55] rounded-full will-change-transform"
+        style={{
+          width: TORCH_SIZE,
+          height: TORCH_SIZE,
+          background:
+            'radial-gradient(circle, rgba(255,205,130,0.32) 0%, rgba(232,166,60,0.14) 35%, rgba(180,120,40,0) 68%)',
+          filter: 'blur(30px)',
+          mixBlendMode: 'screen',
+        }}
+      />
       <div
         ref={ringRef}
         aria-hidden="true"

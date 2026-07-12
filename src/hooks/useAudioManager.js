@@ -19,6 +19,17 @@ const DRONE_HUB_BOOST = 0.2; // arrival weight at the Hub section
 const RAIN_FILTER_MIN_HZ = 900;
 const RAIN_FILTER_MAX_HZ = 4200;
 const MODULATION_RAMP = 0.25;
+// Rain and drone are never layered together — rain plays from the start,
+// and hands off to drone the moment Hub is reached (hubActiveRef), never
+// the two at once. A longer, deliberate ramp than the snappy scroll-
+// reactive one above, so the handoff reads as a genuine scene change
+// ("you've arrived at the mansion") rather than a quick modulation tick.
+const HANDOFF_RAMP = 3;
+// Terminal (the actual page footer) fades the whole bed out to silence
+// rather than just leaving it running — a much longer, deliberate ramp than
+// the snappy scroll-reactive one above, so it reads as "the story is over"
+// rather than another quick modulation tick.
+const FOOTER_FADE_RAMP = 2.5;
 
 export default function useAudioManager() {
   const ctxRef = useRef(null);
@@ -31,6 +42,7 @@ export default function useAudioManager() {
   const sfxGainRef = useRef(null);
   const scrollIntensityRef = useRef(0);
   const hubActiveRef = useRef(false);
+  const footerActiveRef = useRef(false);
   const duckedRef = useRef(false);
   const rawBuffersRef = useRef({}); // key -> ArrayBuffer (fetched during preload)
   const audioBuffersRef = useRef({}); // key -> decoded AudioBuffer
@@ -119,12 +131,16 @@ export default function useAudioManager() {
 
       await decodeAll(ctx);
 
+      // Both loops start immediately and just run for the page's lifetime —
+      // only their GAIN decides which one is actually audible (see
+      // applyModulation), so there's no separate start/stop bookkeeping
+      // needed when handing off between them later. droneGain stays at its
+      // initial 0 here; rain is what plays first.
       playLoop('rain-loop', rainFilter, ctx);
       playLoop('drone-loop', droneGain, ctx);
 
       const now = ctx.currentTime;
       rainGain.gain.linearRampToValueAtTime(RAIN_BASE, now + 2);
-      droneGain.gain.linearRampToValueAtTime(DRONE_BASE, now + 2);
 
       setMuted(startMuted);
       setReady(true);
@@ -135,20 +151,59 @@ export default function useAudioManager() {
   // Recomputes drone/rain targets from the current scroll-velocity intensity
   // (0-1) and Hub-arrival flag, and ramps toward them. Skipped while a
   // narration is ducking the beds (narration restore re-applies this itself).
+  //
+  // Rain and drone are never both audible: before Hub is reached, rain
+  // plays (its own filter still brightens with scroll speed) and drone sits
+  // at 0; the instant hubActiveRef flips true this crossfades — drone ramps
+  // up (with its scroll/Hub boost) while rain ramps down to 0 — over
+  // HANDOFF_RAMP rather than the snappy scroll-reactive MODULATION_RAMP, so
+  // it reads as a scene change rather than a modulation tick. Once past
+  // Hub, hubActiveRef stays true (nothing un-sets it within the canvas) so
+  // there's no drone-back-to-rain handoff later — just Terminal's footer
+  // override, below, taking it the rest of the way to silence.
+  //
+  // Experience.jsx's ScrollTrigger — the only thing that ever calls
+  // setScrollIntensity/setHubActive — only covers Hero through Hub (the
+  // sticky canvas); once the visitor scrolls past it into Contact/Terminal
+  // (plain document flow, no ScrollTrigger watching them) those two refs
+  // simply freeze at whatever they last were, which was usually "fast
+  // scroll, Hub active" right as the visitor left the canvas. That's what
+  // the footer override below is for: Terminal.jsx calls
+  // setFooterActive(true) once it's in view and this takes over
+  // unconditionally, fading both layers to silence instead of leaving them
+  // stuck at that frozen boosted level for the rest of the page. Contact.jsx
+  // separately resets scrollIntensity/hubActive to a calm baseline on its
+  // own entrance so the volume settles down section by section even before
+  // the footer, and so scrolling back UP out of Terminal restores to that
+  // calm baseline (rain, not drone) rather than the stale "still boosted
+  // from Hub" values.
   const applyModulation = useCallback(() => {
     const ctx = ctxRef.current;
     const droneGain = droneGainRef.current;
+    const rainGain = rainGainRef.current;
     const rainFilter = rainFilterRef.current;
-    if (!ctx || !droneGain || !rainFilter || duckedRef.current) return;
-
-    const intensity = scrollIntensityRef.current;
-    const hubBoost = hubActiveRef.current ? DRONE_HUB_BOOST : 0;
-    const droneTarget = DRONE_BASE * (1 + intensity * DRONE_SCROLL_BOOST + hubBoost);
-    const filterTarget = RAIN_FILTER_MIN_HZ + intensity * (RAIN_FILTER_MAX_HZ - RAIN_FILTER_MIN_HZ);
+    if (!ctx || !droneGain || !rainGain || !rainFilter || duckedRef.current) return;
 
     const now = ctx.currentTime;
-    droneGain.gain.linearRampToValueAtTime(droneTarget, now + MODULATION_RAMP);
+
+    if (footerActiveRef.current) {
+      droneGain.gain.linearRampToValueAtTime(0, now + FOOTER_FADE_RAMP);
+      rainGain.gain.linearRampToValueAtTime(0, now + FOOTER_FADE_RAMP);
+      return;
+    }
+
+    const intensity = scrollIntensityRef.current;
+    const filterTarget = RAIN_FILTER_MIN_HZ + intensity * (RAIN_FILTER_MAX_HZ - RAIN_FILTER_MIN_HZ);
     rainFilter.frequency.linearRampToValueAtTime(filterTarget, now + MODULATION_RAMP);
+
+    if (hubActiveRef.current) {
+      const droneTarget = DRONE_BASE * (1 + intensity * DRONE_SCROLL_BOOST + DRONE_HUB_BOOST);
+      droneGain.gain.linearRampToValueAtTime(droneTarget, now + HANDOFF_RAMP);
+      rainGain.gain.linearRampToValueAtTime(0, now + HANDOFF_RAMP);
+    } else {
+      rainGain.gain.linearRampToValueAtTime(RAIN_BASE, now + MODULATION_RAMP);
+      droneGain.gain.linearRampToValueAtTime(0, now + MODULATION_RAMP);
+    }
   }, []);
 
   const setScrollIntensity = useCallback(
@@ -163,6 +218,19 @@ export default function useAudioManager() {
     (active) => {
       if (hubActiveRef.current === active) return;
       hubActiveRef.current = active;
+      applyModulation();
+    },
+    [applyModulation]
+  );
+
+  // Terminal.jsx calls this from its own IntersectionObserver (entering AND
+  // leaving, not one-shot) — see the big comment on applyModulation above
+  // for why this needs to unconditionally override the scroll/Hub-driven
+  // targets rather than just being another input to that formula.
+  const setFooterActive = useCallback(
+    (active) => {
+      if (footerActiveRef.current === active) return;
+      footerActiveRef.current = active;
       applyModulation();
     },
     [applyModulation]
@@ -281,7 +349,17 @@ export default function useAudioManager() {
       const narrationGain = narrationGainRef.current;
       const rainGain = rainGainRef.current;
       const droneGain = droneGainRef.current;
-      if (!ctx || !buffer || !narrationGain) return;
+      const sfxGain = sfxGainRef.current;
+      if (!ctx || !buffer || !narrationGain) {
+        // No playable buffer (decode failure, missing asset, audio not yet
+        // initialized) — Experience.jsx's auto-scroll orchestrator waits on
+        // 'narration-end' for this exact index before advancing, so without
+        // this it would sit on its NARRATION_WAIT_TIMEOUT_MS fallback (15s)
+        // instead of recovering immediately.
+        completedNarrationsRef.current.add(index);
+        window.dispatchEvent(new CustomEvent('narration-end', { detail: { index } }));
+        return;
+      }
 
       if (narrationSourceRef.current) {
         try {
@@ -307,8 +385,25 @@ export default function useAudioManager() {
       const now = ctx.currentTime;
       const RAMP = 0.2;
       duckedRef.current = true;
-      if (rainGain) rainGain.gain.linearRampToValueAtTime(RAIN_BASE * 0.7, now + RAMP);
-      if (droneGain) droneGain.gain.linearRampToValueAtTime(DRONE_BASE * 0.4, now + RAMP);
+      // Only duck whichever of rain/drone is actually the active layer right
+      // now (see applyModulation's hubActiveRef branch) — the other is
+      // already sitting at 0, and ducking it "up" to a fraction of its own
+      // base would make it audibly wake up mid-narration despite rain/drone
+      // never being meant to play together.
+      if (hubActiveRef.current) {
+        if (droneGain) droneGain.gain.linearRampToValueAtTime(DRONE_BASE * 0.4, now + RAMP);
+      } else if (rainGain) {
+        rainGain.gain.linearRampToValueAtTime(RAIN_BASE * 0.7, now + RAMP);
+      }
+      // Gate creak (played moments before narration-1) is still mid-decay when
+      // the voice starts — measured envelope shows it stays loud through
+      // ~1.9s of its own 3s length, not just a brief opening transient, so it
+      // was still burying "In every fog..." even after nudging narration's
+      // start later (reported as "narrator starts mid-sentence"). A fast duck
+      // right as narration begins clears the voice regardless of exactly
+      // where in the creak's decay it lands, rather than chasing the exact
+      // timing offset again.
+      if (sfxGain) sfxGain.gain.linearRampToValueAtTime(GATE_CREAK_GAIN * 0.12, now + 0.08);
 
       source.start(0);
       // Subtitles.jsx listens for this to show the matching hardcoded line,
@@ -326,8 +421,12 @@ export default function useAudioManager() {
         completedNarrationsRef.current.add(index);
         window.dispatchEvent(new CustomEvent('narration-end', { detail: { index } }));
         const end = ctx.currentTime;
-        if (rainGain) rainGain.gain.linearRampToValueAtTime(RAIN_BASE, end + RAMP);
-        if (droneGain) droneGain.gain.linearRampToValueAtTime(DRONE_BASE, end + RAMP);
+        if (sfxGain) sfxGain.gain.linearRampToValueAtTime(GATE_CREAK_GAIN, end + RAMP);
+        // No explicit rain/drone restore here (unlike sfxGain above) —
+        // duckedRef flips false on the next line and applyModulation()
+        // right after already restores whichever of the two is the
+        // currently-active layer and leaves the other at 0, which a blind
+        // "ramp both back to their base" here would get wrong.
         duckedRef.current = false;
         applyModulation();
       };
@@ -366,6 +465,7 @@ export default function useAudioManager() {
     playThunder,
     setScrollIntensity,
     setHubActive,
+    setFooterActive,
     toggleMute,
   };
 }

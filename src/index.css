@@ -110,6 +110,59 @@ body.custom-cursor * {
   animation: fade-up 0.9s ease-out both;
 }
 
+/* Generic reveal, same fade-up keyframe as Loading's but under a
+   section-agnostic name — GSAP entrance timelines (Contact, Hub) toggle
+   this class on/off directly rather than duplicating the keyframe. */
+.fade-up-in {
+  animation: fade-up 0.7s ease-out both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fade-up-in {
+    animation: none;
+  }
+}
+
+/* Lightweight breathing glow, layered onto an element that already has its
+   own border/background (Contact's form panel) — deliberately NOT bundled
+   with .ornate-btn's own border/background declarations below, which would
+   clobber the panel's existing styling instead of adding to it. */
+.ornate-panel {
+  animation: ornate-breathe 5.5s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ornate-panel {
+    animation: none;
+    box-shadow: 0 0 20px rgba(201, 162, 39, 0.16);
+  }
+}
+
+/* Opacity-only breathing pulse (deliberately no transform: scale — used on
+   elements like Hub's name spotlight that already carry their own
+   translate()-based centering utility classes, which a transform-touching
+   keyframe would silently clobber since CSS animations replace the whole
+   computed `transform`, not merge with it). */
+@keyframes glow-breathe {
+  0%,
+  100% {
+    opacity: 0.7;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+.glow-breathe {
+  animation: glow-breathe 6s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .glow-breathe {
+    animation: none;
+  }
+}
+
 @keyframes loading-breathe {
   0%,
   100% {
@@ -199,6 +252,159 @@ body.custom-cursor * {
   }
 }
 
+/* ── Ornate intro controls (Loading.jsx choice/ready stages) ──────────────
+   The ENTER THE FOG button and the PLAY CINEMATIC emblem share the same
+   gold-on-fog language as the rest of the intro: slow breathing glow, a
+   periodic light sheen, and corner brackets that reach outward on hover. */
+
+@keyframes ornate-breathe {
+  0%,
+  100% {
+    box-shadow: 0 0 16px rgba(201, 162, 39, 0.1), inset 0 0 14px rgba(201, 162, 39, 0.04);
+  }
+  50% {
+    box-shadow: 0 0 32px rgba(201, 162, 39, 0.28), inset 0 0 22px rgba(201, 162, 39, 0.1);
+  }
+}
+
+.ornate-btn {
+  position: relative;
+  border: 1px solid rgba(201, 162, 39, 0.45);
+  background: linear-gradient(
+    180deg,
+    rgba(201, 162, 39, 0.09) 0%,
+    rgba(201, 162, 39, 0.02) 50%,
+    rgba(201, 162, 39, 0.09) 100%
+  );
+  animation: ornate-breathe 4.5s ease-in-out infinite;
+  transition: border-color 0.4s ease, transform 0.4s ease;
+}
+
+.ornate-btn:hover {
+  border-color: rgba(201, 162, 39, 0.9);
+  transform: translateY(-1px);
+}
+
+.ornate-corner {
+  position: absolute;
+  width: 12px;
+  height: 12px;
+  border: 0 solid #c9a227;
+  opacity: 0.75;
+  transition: width 0.35s ease, height 0.35s ease, opacity 0.35s ease;
+  pointer-events: none;
+}
+
+.ornate-corner-tl {
+  top: -5px;
+  left: -5px;
+  border-top-width: 1px;
+  border-left-width: 1px;
+}
+.ornate-corner-tr {
+  top: -5px;
+  right: -5px;
+  border-top-width: 1px;
+  border-right-width: 1px;
+}
+.ornate-corner-bl {
+  bottom: -5px;
+  left: -5px;
+  border-bottom-width: 1px;
+  border-left-width: 1px;
+}
+.ornate-corner-br {
+  bottom: -5px;
+  right: -5px;
+  border-bottom-width: 1px;
+  border-right-width: 1px;
+}
+
+.ornate-btn:hover .ornate-corner {
+  width: 20px;
+  height: 20px;
+  opacity: 1;
+}
+
+/* Sheen lives in its own overflow-hidden layer so the sweeping highlight
+   clips to the button face while the corner brackets (siblings, outside the
+   border) stay unclipped. */
+.ornate-sheen {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.ornate-sheen::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: -60%;
+  width: 45%;
+  transform: skewX(-18deg);
+  background: linear-gradient(100deg, transparent 0%, rgba(255, 222, 148, 0.16) 50%, transparent 100%);
+  animation: sheen-sweep 3.6s ease-in-out infinite;
+}
+
+@keyframes sheen-sweep {
+  0%,
+  18% {
+    left: -60%;
+  }
+  60%,
+  100% {
+    left: 130%;
+  }
+}
+
+.play-emblem {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 148px;
+  height: 148px;
+  border-radius: 9999px;
+  transition: transform 0.5s ease;
+}
+
+.group:hover .play-emblem {
+  transform: scale(1.04);
+}
+
+@keyframes halo-pulse {
+  0%,
+  100% {
+    opacity: 0.35;
+    transform: scale(0.92);
+  }
+  50% {
+    opacity: 0.85;
+    transform: scale(1.06);
+  }
+}
+
+.play-halo {
+  position: absolute;
+  inset: -20px;
+  border-radius: 9999px;
+  background: radial-gradient(circle, rgba(201, 162, 39, 0.22) 0%, rgba(201, 162, 39, 0) 65%);
+  animation: halo-pulse 3.5s ease-in-out infinite;
+  pointer-events: none;
+}
+
+@keyframes ring-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.play-ring-dashed {
+  animation: ring-spin 26s linear infinite;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .loading-ambient {
     animation: none;
@@ -209,6 +415,21 @@ body.custom-cursor * {
   .loading-ember {
     animation: none;
     opacity: 0;
+  }
+  .ornate-btn {
+    animation: none;
+    box-shadow: 0 0 20px rgba(201, 162, 39, 0.18);
+  }
+  .ornate-sheen::after {
+    animation: none;
+    opacity: 0;
+  }
+  .play-halo {
+    animation: none;
+    opacity: 0.5;
+  }
+  .play-ring-dashed {
+    animation: none;
   }
 }
 
@@ -752,10 +973,111 @@ body.custom-cursor * {
   width: 100%;
 }
 
+/* Frosted glass "pill" that scales/fades in behind each link on hover —
+   a second, more literal glassmorphism cue layered on top of the underline
+   above rather than replacing it. Negative inset so the pill reads as
+   roomier than the text itself; z-index: -1 keeps it behind the label. */
+.navbar-link::before {
+  content: '';
+  position: absolute;
+  inset: -8px -14px;
+  z-index: -1;
+  border-radius: 9999px;
+  background: rgba(255, 255, 255, 0.06);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  border: 1px solid rgba(201, 162, 39, 0.2);
+  opacity: 0;
+  transform: scale(0.88);
+  transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+.navbar-link:hover::before,
+.navbar-link:focus-visible::before {
+  opacity: 1;
+  transform: scale(1);
+}
+
 @media (prefers-reduced-motion: reduce) {
-  .navbar-link::after {
+  .navbar-link::after,
+  .navbar-link::before {
     transition: none;
   }
+}
+
+/* Navbar.jsx outer row: the mouse-tracked 3D tilt target (Navbar.jsx writes
+   `transform: perspective(...) rotateX() rotateY()` here directly on every
+   mousemove near the bar). `transition` only applies when Navbar.jsx
+   re-enables it on mouse-leave (it sets transitionProperty:'none' during
+   active tracking so the tilt tracks the cursor 1:1 instead of lagging
+   through this same transition) — same "toggle the transition off/on"
+   pattern Projects.jsx's card tilt uses, for the same reason. */
+.navbar-3d {
+  will-change: transform;
+  transition: transform 0.6s cubic-bezier(0.25, 1, 0.5, 1);
+}
+
+/* Navbar.jsx top bar: a frosted glass strip riding over the video/canvas
+   rather than a flat color band — backdrop-filter blur+saturate for the
+   glass look, a soft gold hairline to seat it, layered box-shadow to read
+   as a pane with actual thickness (a bright inset line along the top edge
+   where light would catch it, a dark inset line along the bottom, and a
+   soft cast shadow underneath separating it from the scene), and a slow
+   diagonal gloss sweep (same technique as .ornate-sheen, just much
+   slower/dimmer so it reads as ambient light catching glass rather than a
+   button highlight). Rendered as the FIRST child of Navbar's row (see
+   Navbar.jsx) so normal DOM stacking order alone keeps it behind the
+   wordmark/links — no z-index needed there. The row container is already
+   `position: absolute`, which is what makes it a valid containing block
+   for this `inset: 0` overlay. */
+.navbar-glass {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  background: linear-gradient(180deg, rgba(10, 12, 16, 0.55) 0%, rgba(10, 12, 16, 0.26) 65%, rgba(10, 12, 16, 0) 100%);
+  backdrop-filter: blur(14px) saturate(140%);
+  -webkit-backdrop-filter: blur(14px) saturate(140%);
+  border-bottom: 1px solid rgba(201, 162, 39, 0.16);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.09), inset 0 -1px 0 rgba(0, 0, 0, 0.4),
+    0 12px 30px rgba(0, 0, 0, 0.35);
+}
+
+.navbar-glass::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: -40%;
+  width: 30%;
+  transform: skewX(-20deg);
+  background: linear-gradient(100deg, transparent 0%, rgba(255, 222, 148, 0.1) 50%, transparent 100%);
+  animation: sheen-sweep 10s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .navbar-glass::after {
+    animation: none;
+    opacity: 0;
+  }
+
+  .navbar-3d {
+    transition: none;
+  }
+}
+
+/* Specular highlight — a soft warm glow that follows the cursor across the
+   glass (--mx/--my set by Navbar.jsx's tilt handler), reading as light
+   sliding across the pane's surface as it tilts. Lives inside
+   .navbar-glass so it's clipped to the bar's own bounds. Always present at
+   a low baseline rather than hover-gated, since this isn't a discrete
+   :hover target (the tilt tracking is a window-level listener, not a CSS
+   hover state) — its position doing the work is what reads as reactive. */
+.navbar-shine {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(circle at var(--mx, 50%) var(--my, 0%), rgba(255, 238, 200, 0.22) 0%, rgba(255, 238, 200, 0) 45%);
 }
 
 /* OverlayModal.jsx entrance: a small fade + scale-up rather than an instant
@@ -824,29 +1146,171 @@ body.custom-cursor * {
   flex-shrink: 0;
 }
 
-/* Hub tablet + name overlay: gold gradient fill with layered text-shadow for
-   an engraved-stone look. */
+/* Hub tablet buttons (ABOUT/EXPERIENCE/SKILLS/CONTACT): same low-contrast
+   problem as .identity-name used to have — a static gold gradient fill on
+   these stone tablets was reading as nearly invisible against the mansion's
+   own warm-lit facade, and the only motion was a one-shot fade on mount
+   (already finished by the time anyone actually looked). Fixed the same way:
+   a dark stroke for a hard edge regardless of background, plus the shared
+   .gold-shimmer-text-style animated gradient (see gold-shimmer-sweep
+   keyframe above) so there's always visible motion, not just an entrance.
+   `--tablet-i` (set inline per button in Hub.jsx) offsets each tablet's
+   delay so all four don't shimmer in lockstep. */
+/* Two rounds of "still can't read it" reports on this class made clear the
+   gradient-clip + shimmer treatment (bright-to-dark gold cycling via
+   background-position) was the wrong tool here: for the ~8s of every cycle
+   spent near its darkest stop (#7a5f14, a dark bronze), the tablets were
+   genuinely low-contrast again regardless of the backdrop plate below.
+   Solid, non-animated bright gold with a dark stroke is less "clever" but
+   is legible 100% of the time instead of ~60% of a loop — reliability wins
+   over shimmer here. (.identity-name/.gold-shimmer-text keep the shimmer;
+   neither of those got a legibility complaint.) */
 .tablet-label {
-  background: linear-gradient(180deg, #f3dd9a 0%, #c9a227 45%, #7a5f14 100%);
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
-  text-shadow: 0 1px 0 rgba(255, 235, 180, 0.25), 0 -2px 2px rgba(0, 0, 0, 0.85), 0 2px 4px rgba(0, 0, 0, 0.6);
-  filter: drop-shadow(0 0 6px rgba(201, 162, 39, 0.25));
-  transition: filter 0.3s ease;
+  color: #f3dd9a;
+  -webkit-text-stroke: 0.6px rgba(6, 5, 3, 0.6);
+  text-shadow: 0 1px 0 rgba(255, 235, 180, 0.25), 0 -1px 2px rgba(0, 0, 0, 0.9), 0 2px 5px rgba(0, 0, 0, 0.85);
+  filter: drop-shadow(0 0 6px rgba(201, 162, 39, 0.3));
+  transition: filter 0.3s ease, color 0.3s ease;
 }
 
 button.tablet-label:hover,
 button.tablet-label:focus-visible {
+  color: #f8e3a3;
   filter: drop-shadow(0 0 16px rgba(201, 162, 39, 0.65));
 }
 
-/* Hub identity name (Section IV): a heavier, commanding stack on top of the
-   shared .tablet-label engraved-gold treatment above — bigger glow radius
-   and a touch of layered shadow depth so "MUZAMMIL" reads as the section's
-   focal point rather than a label the same weight as the tablet buttons. */
+/* Desktop Hub tablet backdrop (EXPERIENCE/SKILLS/ABOUT/CONTACT): these
+   buttons sit directly on scene-4-hub.png's own busy, photorealistic
+   tombstone carving with no backdrop of their own (unlike the mobile 2x2
+   grid, which already has .hub-stone-button's solid stone-panel
+   background) — a real dark plaque behind the text, visible at rest and
+   not just on hover, is what actually guarantees contrast regardless of
+   what part of the image is behind it. A `::before` on the button itself
+   (Hub.jsx renders the label as plain text again, no wrapper spans) rather
+   than a sibling element — one less thing that could interfere with how
+   .tablet-label's own color/stroke paint on the button's text. */
+/* The "text animation" ask for this section still stands, but it has to
+   land on the PLATE, never the letterforms — this is the class that just
+   got burned twice by animating the text itself into periods of low
+   contrast. A slow breathing glow on the plate's border reads as
+   torchlight catching worn stone, and can't ever make the text harder to
+   read since it never touches text color/opacity. `--tablet-i` (set inline
+   per button in Hub.jsx) offsets each tablet so the four don't pulse in
+   lockstep. Hover only nudges border-color now — box-shadow is left
+   entirely to the animation below it, so the two never fight over the same
+   property (a running CSS animation always wins that fight, silently
+   making a :hover box-shadow override a no-op — the exact bug shape to
+   avoid after the shimmer's animation/:hover conflict on this same
+   element). */
+/* A compact nameplate behind the label text, NOT a cover over the whole
+   button — the button spans the tombstone's entire face (16% of the
+   viewport tall), and a full-cover plate was blacking out the stone
+   texture of all four tablets in the photo ("giant black boxes"). A real
+   <span> wrapping the label (Hub.jsx) rather than a ::before sized against
+   the button box, because the longer labels (EXPERIENCE) are wider than
+   their tombstone's button box — a box-anchored plate left the text
+   overhanging its own plate's edges, while a text-wrapping span auto-fits
+   every label exactly. Slightly translucent so it reads as shadow ON the
+   stone rather than a sticker over it. */
+.tablet-plate {
+  display: inline-block;
+  padding: 0.45em 0.8em;
+  border-radius: 3px;
+  background: linear-gradient(180deg, rgba(20, 17, 10, 0.82) 0%, rgba(10, 8, 5, 0.88) 100%);
+  border: 1px solid rgba(201, 162, 39, 0.18);
+  transition: border-color 0.35s ease;
+  animation: tablet-plate-breathe 4.5s ease-in-out infinite;
+  animation-delay: calc(var(--tablet-i, 0) * -1.1s);
+}
+
+button.tablet-label:hover .tablet-plate,
+button.tablet-label:focus-visible .tablet-plate {
+  border-color: rgba(201, 162, 39, 0.55);
+}
+
+@keyframes tablet-plate-breathe {
+  0%,
+  100% {
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05), inset 0 -2px 4px rgba(0, 0, 0, 0.5),
+      0 0 6px rgba(201, 162, 39, 0.12);
+  }
+  50% {
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05), inset 0 -2px 4px rgba(0, 0, 0, 0.5),
+      0 0 16px rgba(201, 162, 39, 0.32);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tablet-plate {
+    animation: none;
+  }
+}
+
+/* Hub identity name (Section IV): standalone treatment (not layered on top
+   of .tablet-label) — the name was reading as near-invisible against
+   scene-4-hub.png's own warm, gold-lit windows since a plain gold gradient
+   text-fill has almost no contrast against a background that's already
+   gold-lit. A dark -webkit-text-stroke gives the letterforms a hard edge
+   regardless of what's behind them (same "engraved stone" language as the
+   tablets, just carried further), a heavier layered glow pulls it forward,
+   and a slow gold shimmer sweep (shared with Contact's heading — see
+   .gold-shimmer-text below) is the "with animation" half of that fix. */
 .identity-name {
-  filter: drop-shadow(0 0 10px rgba(201, 162, 39, 0.4)) drop-shadow(0 4px 18px rgba(0, 0, 0, 0.6));
+  background: linear-gradient(180deg, #fbedc0 0%, #e0b83a 35%, #a9821f 70%, #6b5112 100%);
+  background-size: 220% 100%;
+  background-position: 200% 0;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+  -webkit-text-stroke: 1.5px rgba(6, 5, 3, 0.65);
+  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.9);
+  filter: drop-shadow(0 0 16px rgba(201, 162, 39, 0.55)) drop-shadow(0 4px 20px rgba(0, 0, 0, 0.75));
+  animation: gold-shimmer-sweep 7s ease-in-out 1.6s infinite;
+}
+
+/* Hub identity subtitle: the small tagline line under the name suffers the
+   exact same low-contrast problem (see .identity-name above) since it also
+   sits directly over the mansion facade — a lighter version of the same
+   stroke+shadow fix, no shimmer (would be too busy at this size/weight). */
+.identity-subtitle {
+  -webkit-text-stroke: 0.6px rgba(6, 5, 3, 0.55);
+  text-shadow: 0 1px 0 rgba(255, 235, 180, 0.2), 0 2px 6px rgba(0, 0, 0, 0.95);
+}
+
+/* Shared slow gold shimmer sweep — a bright band drifts across the
+   gradient-filled text on a loop. Used by .identity-name (Hub) and
+   Contact's heading so the two fixed/enhanced sections read as one
+   consistent "signature gold" treatment rather than one-off tweaks. */
+@keyframes gold-shimmer-sweep {
+  0%,
+  8% {
+    background-position: 200% 0;
+  }
+  55%,
+  100% {
+    background-position: -60% 0;
+  }
+}
+
+.gold-shimmer-text {
+  background: linear-gradient(100deg, #c9a227 0%, #c9a227 38%, #fff6d8 49%, #fff6d8 55%, #c9a227 66%, #c9a227 100%);
+  background-size: 260% 100%;
+  background-position: 200% 0;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+  filter: drop-shadow(0 1px 6px rgba(0, 0, 0, 0.7)) drop-shadow(0 0 14px rgba(201, 162, 39, 0.3));
+  animation: gold-shimmer-sweep 7s ease-in-out 1.6s infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .identity-name,
+  .gold-shimmer-text {
+    animation: none;
+    background-position: 40% 0;
+  }
 }
 
 /* Hub mobile 2x2 tablet grid: dedicated stone-styled buttons (not chasing
@@ -864,4 +1328,120 @@ button.tablet-label:focus-visible {
 .hub-stone-button:focus-visible {
   border-color: rgba(201, 162, 39, 0.65);
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08), inset 0 -2px 4px rgba(0, 0, 0, 0.5), 0 0 16px rgba(201, 162, 39, 0.35);
+}
+
+/* Contact form ripple: a gold radial pulse spawned at the pointer position
+   on press (Contact.jsx's spawnRipple), same "engraved gold" material as
+   the rest of the site rather than a stock Material-style ripple. The host
+   button already carries `overflow-hidden` (.ornate-btn usage in
+   Contact.jsx) so this clips to the button face; the element removes
+   itself from the DOM on animationend rather than via React state so a
+   rapid double-click can stack more than one ripple without fighting a
+   single boolean toggle. */
+.ripple-dot {
+  position: absolute;
+  border-radius: 9999px;
+  background: radial-gradient(circle, rgba(255, 235, 190, 0.7) 0%, rgba(201, 162, 39, 0.4) 45%, rgba(201, 162, 39, 0) 72%);
+  transform: scale(0);
+  pointer-events: none;
+  animation: ripple-expand 700ms ease-out forwards;
+}
+
+@keyframes ripple-expand {
+  to {
+    transform: scale(1);
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ripple-dot {
+    display: none;
+  }
+}
+
+/* Contact field focus glow: a soft gold bloom behind the whole form panel
+   that blooms in on focus-within, layered on top of .ornate-panel's own
+   constant breathing glow so typing into the form reads as "the panel is
+   responding to you" rather than just the single underline reacting. */
+.contact-form-panel {
+  transition: box-shadow 0.5s ease;
+}
+
+.contact-form-panel:focus-within {
+  box-shadow: 0 0 46px rgba(201, 162, 39, 0.3), inset 0 0 30px rgba(201, 162, 39, 0.06);
+}
+
+/* ── Hub (Section IV) polish — embers, separator, quote, tablet indices,
+   ambient mist. Purely decorative additions layered over the existing
+   background image/tablet layout, never touching either. ───────────────── */
+
+/* Ember particles: drift upward with a left-right-left sway rather than a
+   straight vertical rise (a plain translateY reads as "falling upward",
+   not embers) — per-instance left/top/size/duration/delay/opacity all come
+   from Hub.jsx's deterministic generator (same reasoning as
+   Fireflies.jsx's own generator: fixed, not Math.random() per render).
+   --ember-opacity is read by the keyframe itself so each ember can have a
+   different peak brightness while sharing one @keyframes rule. */
+.hub-ember {
+  position: absolute;
+  border-radius: 9999px;
+  background: rgba(232, 182, 76, 0.6);
+  pointer-events: none;
+  animation-name: hub-ember-rise;
+  animation-timing-function: ease-in-out;
+  animation-iteration-count: infinite;
+}
+
+@keyframes hub-ember-rise {
+  0% {
+    transform: translate(0, 0);
+    opacity: 0;
+  }
+  12% {
+    opacity: var(--ember-opacity, 0.55);
+  }
+  30% {
+    transform: translate(5px, -32%);
+  }
+  55% {
+    transform: translate(-5px, -58%);
+  }
+  78% {
+    transform: translate(4px, -80%);
+  }
+  90% {
+    opacity: var(--ember-opacity, 0.55);
+  }
+  100% {
+    transform: translate(0, -102%);
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hub-ember {
+    animation: none;
+    opacity: 0.35;
+  }
+}
+
+/* Separator line + quote: both are one-shot GSAP entrance targets (see
+   Hub.jsx's mount effect) rather than CSS-animated, so under
+   prefers-reduced-motion — where that whole effect returns early and never
+   runs — they fall back to plain CSS defaults (scaleX(1), opacity 1) below
+   instead of an inline "not yet played" style that would otherwise strand
+   them invisible for reduced-motion visitors. */
+.hub-separator-line {
+  transform: scaleX(1);
+  transform-origin: left;
+}
+
+.hub-quote {
+  opacity: 0.45;
+}
+
+/* Ambient ground mist: a static gradient, no animation/motion concern. */
+.hub-mist {
+  background: linear-gradient(to top, rgba(180, 180, 200, 0.08), transparent);
 }

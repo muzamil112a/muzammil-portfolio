@@ -1,7 +1,7 @@
 // WARDEN.AI's entire brain — a purely local data store, no LLM, no network.
 // Everything the terminal can say lives in this one file so updating the
 // bot means editing data here, never touching Terminal.jsx's rendering or
-// typewriter logic. Content mirrors my cv.pdf; keep the two in sync.
+// typewriter logic. Content mirrors Profile.pdf; keep the two in sync.
 //
 // Two layers, checked in order by resolveResponse():
 //   1. COMMANDS  — exact-match words (the classic terminal verbs).
@@ -17,25 +17,24 @@ export const COMMAND_LIST = ['help', 'about', 'projects', 'skills', 'cv', 'conta
 export const COMMANDS = {
   help: () => [
     `Available commands: ${COMMAND_LIST.join(', ')}`,
-    "Or simply ask — 'what does he do', 'is he available for hire', 'tell me about the pharmacy project'.",
+    "Or simply ask — 'what does he do', 'is he available for hire', 'tell me about the seo work'.",
   ],
   about: () => [
-    'Muhammad Muzammil — Junior AI Automation Engineer at Wanile Technologies, Lahore.',
+    'Muhammad Muzamil — Quality Assurance · UI/UX Designer · SEO · Operations (AUS).',
     'Software Engineering graduate (University of Lahore, 2021-2025).',
-    'Designs end-to-end automated systems connecting applications, data sources, and AI services.',
+    'Currently at Wanile Technologies (SEO) and Tech Direct Support (NOC, Australia).',
   ],
   projects: () => [
-    '01 AI-Powered Workflow Automation — n8n + Zapier pipelines wiring forms, email, Sheets, and AI services.',
-    '02 Pharmacy Management System — full-stack app: auth, inventory, prescriptions, billing, analytics.',
-    '03 MCP Server Integrations — Claude wired to local files, APIs, and external services.',
-    '04 AI Content & Data Pipelines — automated generation, extraction, and intelligent routing.',
-    "Ask about any of them by name — e.g. 'tell me about the mcp work'.",
+    '01 Search Engine Optimizer — Wanile Technologies, Lahore. Keyword research, on-page and technical SEO, link-building.',
+    '02 NOC — Tech Direct Support, Australia (remote). Network operations and tech support.',
+    "Ask about either by name — e.g. 'tell me about the seo work' or 'tell me about the noc role'.",
   ],
   skills: () => [
-    'AI & Automation: n8n, Zapier, Workflow Automation, AI Agents, Claude, ChatGPT, Prompt Engineering',
-    'Integrations & APIs: REST APIs, Webhooks, MCP Servers, Google Sheets, Third-Party Systems',
-    'Development: JavaScript, HTML, CSS, Git & GitHub · Tools: Postman, Windsurf IDE, VS Code',
-    'Certified: Microsoft Technology Associate (MTA) · Google AI Essentials',
+    'Quality Assurance: Software Testing, Bug Identification, Usability Testing, UI/UX Design',
+    'SEO: Keyword Research, On-Page SEO, Technical SEO, Link-Building Strategies',
+    'Operations: Operations Management, Client Relations, NOC Support',
+    'Development: JavaScript, HTML, CSS, Git & GitHub',
+    'Top skills: Communication, Client Relations, Operations Management',
   ],
   cv: () => ({
     lines: ['Retrieving the dossier from the archives... it should be opening now.'],
@@ -58,80 +57,78 @@ export const TOPICS = [
     keywords: ['education', 'degree', 'university', 'studied', 'study', 'graduate', 'graduated', 'school', 'bs'],
     phrases: ['where did he study'],
     lines: [
-      'BS in Software Engineering — University of Lahore, 2021-2025.',
-      'Everything past the degree (n8n, MCP servers, AI-agent workflows) is self-directed, built on real work.',
+      'BS in Software Engineering, Web Development — University of Lahore, 2021-2025.',
+      'That foundation carries into both his QA instincts and his SEO/technical work today.',
     ],
   },
   {
     keywords: ['experience', 'career', 'wanile', 'job', 'role', 'position', 'employer', 'company'],
     phrases: ['work history', 'where does he work', 'current job'],
     lines: [
-      'Junior AI Automation Engineer at Wanile Technologies, Lahore — Jan 2026 to present.',
-      'Designs and deploys n8n/Zapier workflows, integrates Claude and ChatGPT into business processes,',
-      'and configures MCP servers connecting AI models to files, APIs, and external services.',
+      'Two current roles. Search Engine Optimizer at Wanile Technologies, Lahore — since Aug 2025.',
+      'NOC at Tech Direct Support, Australia (remote) — since Jan 2026.',
+      'At Wanile his contributions also lean into Quality Assurance: testing, bug identification, usability.',
     ],
   },
   {
-    keywords: ['pharmacy', 'inventory', 'billing', 'prescriptions'],
-    phrases: ['pharmacy management system', 'full stack project'],
+    keywords: ['qa', 'quality', 'testing', 'bugs', 'usability'],
+    phrases: ['quality assurance', 'software testing', 'bug identification'],
     lines: [
-      'Pharmacy Management System (Dec 2025 - Jan 2026) — AI-assisted full-stack build.',
-      'Authentication & roles, inventory tracking, prescription management, payment processing,',
-      'and an analytics dashboard. He handled UI, development, testing, and deployment.',
+      'Quality Assurance — software testing and usability improvements, built on a foundation in UI design.',
+      'The focus: catch critical bugs early, keep interfaces as functional as they are user-friendly.',
     ],
   },
   {
-    keywords: ['mcp', 'servers'],
-    phrases: ['mcp server', 'mcp work', 'model context protocol'],
+    keywords: ['seo', 'keyword', 'keywords', 'backlink', 'backlinks', 'ranking', 'rankings'],
+    phrases: ['search engine optimizer', 'search engine optimization', 'on page seo', 'technical seo', 'link building'],
     lines: [
-      'MCP Server Integrations — wiring AI models to the real world.',
-      'Configured MCP servers so Claude can read local files, call APIs, and drive external services —',
-      'real tool access inside automation pipelines, not just chat.',
+      'Search Engine Optimizer at Wanile Technologies, Lahore — Aug 2025 to present.',
+      'Learning and practicing SEO fundamentals: keyword research, on-page SEO, technical SEO, and link-building strategies.',
     ],
   },
   {
-    keywords: ['n8n', 'zapier', 'workflows', 'pipeline', 'pipelines', 'routing', 'extraction'],
-    phrases: ['workflow automation', 'automation project'],
+    keywords: ['noc', 'network', 'monitoring'],
+    phrases: ['tech direct support', 'network operations', 'operational manager'],
     lines: [
-      'AI-Powered Workflow Automation — his core body of work.',
-      'n8n + Zapier pipelines connecting web forms, email, Google Sheets, and AI services,',
-      'with intelligent routing, data extraction, and automated content generation built in.',
+      'NOC at Tech Direct Support, Australia (remote) — Jan 2026 to present.',
+      'Network operations and tech support: keeping systems monitored and client issues resolved.',
+    ],
+  },
+  {
+    keywords: ['design', 'ui', 'ux', 'interface', 'interfaces'],
+    phrases: ['ui/ux', 'ui ux designer', 'user experience'],
+    lines: [
+      'UI/UX design is the foundation his QA work sits on — interfaces judged as much on usability as function.',
     ],
   },
   {
     keywords: ['stack', 'tools', 'technologies', 'tech'],
     phrases: ['tech stack', 'what does he use'],
     lines: [
-      'Core stack: n8n and Zapier for orchestration; REST APIs, webhooks, and MCP servers for wiring.',
-      'Claude and ChatGPT are reasoning steps inside the workflows, not bolted on after.',
-      'Development: JavaScript, HTML, CSS, Git. Daily tools: Postman, Windsurf IDE, VS Code.',
+      'Development: JavaScript, HTML, CSS, Git & GitHub — from the Software Engineering degree.',
+      'Day to day now: QA testing workflows, SEO tooling (keyword research, technical audits), and NOC monitoring.',
     ],
-  },
-  {
-    keywords: ['certification', 'certifications', 'certified', 'certificate', 'mta'],
-    phrases: ['google ai essentials'],
-    lines: ['Microsoft Technology Associate (MTA) and Google AI Essentials.'],
   },
   {
     keywords: ['hire', 'hiring', 'available', 'availability', 'freelance', 'collaborate', 'recruit'],
     phrases: ['open to work', 'work with him', 'is he available'],
     lines: [
-      'Open to freelance and full-time AI automation / integration engineering work.',
+      'Open to opportunities in QA, UI/UX, SEO, and operations.',
       "Fastest way in: the contact form above, or type 'contact' for direct details.",
     ],
   },
   {
-    keywords: ['soft', 'communication', 'teamwork', 'adaptability'],
-    phrases: ['soft skills', 'problem solving'],
+    keywords: ['soft', 'communication', 'teamwork', 'adaptability', 'client', 'relations', 'operations'],
+    phrases: ['soft skills', 'client relations', 'operations management'],
     lines: [
-      'Soft skills, per the dossier: problem solving, communication, teamwork,',
-      'adaptability, and analytical thinking. The fog demands all five.',
+      'Top skills, per the dossier: Communication, Client Relations, Operations Management.',
+      'Also: problem solving, teamwork, adaptability, analytical thinking. The fog demands all of it.',
     ],
   },
   {
-    keywords: ['where', 'location', 'lahore', 'pakistan', 'based', 'city', 'country', 'remote'],
+    keywords: ['where', 'location', 'lahore', 'pakistan', 'australia', 'aus', 'based', 'city', 'country', 'remote'],
     phrases: ['where is he', 'where does he live'],
-    lines: ['Lahore, Pakistan — and comfortable working remotely with teams anywhere.'],
+    lines: ['Based in Lahore, Pakistan — working the NOC role remotely for an Australian company.'],
   },
   {
     keywords: ['email', 'mail', 'linkedin', 'reach', 'message'],
@@ -147,11 +144,11 @@ export const TOPICS = [
     lines: ['The estate does not discuss numbers in the courtyard. Email him — the gate is always listening.'],
   },
   {
-    keywords: ['who', 'muzammil', 'name', 'himself'],
+    keywords: ['who', 'muzammil', 'muzamil', 'name', 'himself'],
     phrases: ['who is he', 'who are you', 'what does he do'],
     lines: [
-      'Muhammad Muzammil — Junior AI Automation Engineer. He builds systems that connect',
-      'applications, data, and AI models so the repetitive work disappears.',
+      'Muhammad Muzamil — Quality Assurance, UI/UX Design, SEO, and Operations (AUS).',
+      'He tests software, shapes interfaces, grows search visibility, and keeps operations running.',
       "I am WARDEN.AI, keeper of this estate — a local construct, no cloud behind me.",
     ],
   },

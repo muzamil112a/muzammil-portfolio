@@ -1,7 +1,7 @@
 const NAV_ITEMS = [
   { id: 'hero', numeral: 'I', label: 'HOME' },
   { id: 'about', numeral: 'II', label: 'ABOUT' },
-  { id: 'projects', numeral: 'III', label: 'PROJECTS' },
+  { id: 'projects', numeral: 'III', label: 'EXPERIENCE' },
   { id: 'hub', numeral: 'IV', label: 'HUB' },
   { id: 'contact', numeral: 'V', label: 'CONTACT' },
 ];
