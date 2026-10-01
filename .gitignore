@@ -3,3 +3,6 @@ dist/
 assets-backup-original/
 
 .vercel
+
+# local AI tooling and working notes
+.claude/
